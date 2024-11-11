@@ -48,14 +48,16 @@ public class CapersRepository {
     public static void writeStory(String text) {
         // TODO
         File story =join(CAPERS_FOLDER,"story");
-        String newStory=null;
+        String newStory;
+
         if(!story.exists()){
             newStory = text;
         }else {
-            newStory =newStory + text;
+            String originStory = Utils.readContentsAsString(story);
+            newStory =originStory + "/n"+ text;
         }
         System.out.println(newStory);
-        Utils.writeContents(story);
+        Utils.writeContents(story,newStory);
     }
 
     /**

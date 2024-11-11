@@ -25,9 +25,6 @@ import java.util.List;
 class Utils {
 
     /* READING AND WRITING FILE CONTENTS */
-    /**
-     * 返回整个FILE的内容存入byte数组，FILE必须是一个自然文件。抛出IllegalArgumentException
-     */
     /** Return the entire contents of FILE as a byte array.  FILE must
      *  be a normal file.  Throws IllegalArgumentException
      *  in case of problems. */
