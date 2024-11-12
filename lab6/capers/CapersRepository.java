@@ -54,7 +54,7 @@ public class CapersRepository {
             newStory = text;
         }else {
             String originStory = Utils.readContentsAsString(story);
-            newStory =originStory + "/n"+ text;
+            newStory =originStory + "\n"+ text;
         }
         System.out.println(newStory);
         Utils.writeContents(story,newStory);
@@ -67,6 +67,9 @@ public class CapersRepository {
      */
     public static void makeDog(String name, String breed, int age) {
         // TODO
+        Dog dog =new Dog(name, breed, age);
+        dog.saveDog();
+        System.out.println(dog.toString());
     }
 
     /**
@@ -77,5 +80,9 @@ public class CapersRepository {
      */
     public static void celebrateBirthday(String name) {
         // TODO
+        //dog's age +1 and store
+        Dog dog = Dog.fromFile(name);
+        dog.haveBirthday();
+        dog.saveDog();
     }
 }
