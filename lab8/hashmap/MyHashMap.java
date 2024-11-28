@@ -12,7 +12,7 @@ import java.util.Set;
  *  Assumes null keys will never be inserted, and does not resize down upon remove().
  *  @author YOUR NAME HERE
  */
-public class MyHashMap<K, V> implements Map61B<K, V> {
+public class MyHashMap<K, V> implements Map61B<K, V>{
 
     /**
      * Protected helper class to store key/value pairs
@@ -32,15 +32,26 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
     private Collection<Node>[] buckets;
     // You should probably define some more!
     private int size;
-    private double loadFactor = 0.75;
+    private final double maxFactor;
+
 
     /** Constructors */
     public MyHashMap() {
         buckets = createTable(16);
+        for (int i = 0; i < buckets.length; i++) {
+            buckets[i] = createBucket();
+        }
+        size = 0;
+        maxFactor = 0.75;
     }
 
     public MyHashMap(int initialSize) {
         buckets = createTable(initialSize);
+        for (int i = 0; i < buckets.length; i++) {
+            buckets[i] = createBucket();
+        }
+        size = 0;
+        maxFactor = 0.75;
     }
 
     /**
@@ -52,9 +63,11 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
      */
     public MyHashMap(int initialSize, double maxLoad) {
         buckets = createTable(initialSize);
-        if(loadFactor >= maxLoad){
-            resize();
+        for (int i = 0; i < buckets.length; i++) {
+            buckets[i] = createBucket();
         }
+        size = 0;
+        maxFactor = maxLoad;
     }
 
     /**
@@ -108,12 +121,57 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
     private int hash(K key){
         return Math.floorMod(key.hashCode(), buckets.length);
     }
+    private int hash(K key,int length){
+        return Math.floorMod(key.hashCode(),length);
+    }
+
+    private void resize(){
+        /*
+        create a new array with length*factor to buckets
+        reload all of items with new hashCode to the new buckets
+         */
+        Collection<Node>[] tempBuckets = createTable(buckets.length * 2);
+        for (int i = 0; i < tempBuckets.length; i++) {
+            tempBuckets[i] = createBucket();
+        }
+
+        for (int i = 0; i < buckets.length; i++) {
+            if(buckets[i] !=null){
+                for (Node node : buckets[i]) {
+                    Node newNode = createNode(node.key,node.value);
+                    int newIndex = hash(node.key, tempBuckets.length);
+                    tempBuckets[newIndex].add(newNode);
+                }
+            }
+        }
+        buckets = tempBuckets;
+    }
+
+    /**
+     * Through key's hashcode find bucket and find node in bucket
+     * @param key
+     * @return if node exists return The node corresponding to the key
+     * else return false
+     */
+    private Node findNodeByKeyHash(K key){
+        int index = hash(key);
+        if(buckets[index] == null){
+            buckets[index] = createBucket();
+        }
+        for (Node node : buckets[index]) {
+            if(node.key.equals(key)){
+                return node;
+            }
+        }
+        return null;
+    }
     /**
      * Removes all of the mappings from this map.
      */
     @Override
     public void clear() {
-
+        buckets = createTable(buckets.length);
+        size = 0;
     }
 
     /**
@@ -128,13 +186,7 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
         * if buckets contains the key given ,return true;
         * otherwise return false
         * */
-        int index = hash(key);
-        Collection<Node> bucket = buckets[index];
-        for (Node node : bucket) {
-            if(node.key.equals(key))
-                return true;
-        }
-        return false;
+        return findNodeByKeyHash(key) != null;
     }
 
     /**
@@ -145,6 +197,10 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
      */
     @Override
     public V get(K key) {
+        if(containsKey(key)){
+            Node node = findNodeByKeyHash(key);
+            return node.value;
+        }
         return null;
     }
 
@@ -166,7 +222,27 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
      */
     @Override
     public void put(K key, V value) {
+        /*contain key  if key exists update its value
+        otherwise add key-value pair into corresponding bucket through hashcode
 
+        keep track of the size and when to resize
+        * */
+        Node node = findNodeByKeyHash(key);
+        int index = hash(key);
+        if (node != null) {
+            node.value = value;
+        } else {
+            if(buckets[index] == null){
+                buckets[index] = createBucket();
+            }
+            buckets[index].add(createNode(key, value));
+            size++;
+        }
+
+        double loadFactor = (double) size / buckets.length;
+        if(loadFactor >= maxFactor){
+            resize();
+        }
     }
 
     /**
