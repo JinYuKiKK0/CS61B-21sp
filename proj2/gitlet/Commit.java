@@ -22,24 +22,30 @@ public class Commit implements Serializable {
      */
     private Date date;
     private ArrayList<blob> blobs;
-    private String hashcode;
+    private String ID;
     private String Author;
+    private Commit parentCommit;
     /** The message of this Commit. */
     private String message;
 
     /* TODO: fill in the rest of this class. */
-    public Commit(String summary){
+    public Commit(String summary,Commit parent){
         blobs = new ArrayList<>();
         date = new Date();
         message = summary;
         Author = "JinYu";
-        hashcode = Utils.sha1(date,blobs,message,Author);
+        parentCommit = parent;
+        ID = Utils.sha1(date,blobs,message,Author,parentCommit);
     }
     public Commit(Date date){
         blobs = new ArrayList<>();
         this.date = date;
         message = "initial commit";
         Author = "JinYu";
-        hashcode = Utils.sha1(this.date,blobs,message,Author);
+        ID = Utils.sha1(this.date,blobs,message,Author,parentCommit);
+    }
+
+    public String getHash() {
+        return ID;
     }
 }
