@@ -207,7 +207,7 @@ class Utils {
 
     /* SERIALIZATION UTILITIES */
 
-    /** Returns a byte array containing the serialized contents of OBJ. */
+    /** Returns a  conbyte arraytaining the serialized contents of OBJ. */
     static byte[] serialize(Serializable obj) {
         try {
             ByteArrayOutputStream stream = new ByteArrayOutputStream();

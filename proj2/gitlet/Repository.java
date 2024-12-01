@@ -3,6 +3,7 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
+import java.util.List;
 
 import static gitlet.Utils.*;
 
@@ -68,12 +69,28 @@ public class Repository {
 
         Commit initCommit = new Commit(new Date(0));
 
+        //calculate the ID and create commit File by the ID given
+        initCommit.setHash(initCommit);
         File commitFile = join(Commits, initCommit.getHash());
         commitFile.createNewFile();
+        writeObject(commitFile,initCommit);
         PointerManager.initializePointers(initCommit);
-
                 /*when init,create an initial commit blob in objects and
                  create pointer "master" and "HEAD" point to the initial commit blob
                  */
+    }
+    public static void add() throws IOException {
+        List<String> filenames = plainFilenamesIn(CWD);
+        for (String filename : filenames) {
+            File toAddFile = new File(filename);
+            //convert the file content to byte[]
+            byte[] readContents = readContents(toAddFile);
+            //create the blob to store the content (blob named by content2hashCode)
+            File blob = join(blobs,sha1(readContents));
+            blob.createNewFile();
+            //copy the file content to blob FILE
+            writeContents(blob,readContents);
+        }
+
     }
 }

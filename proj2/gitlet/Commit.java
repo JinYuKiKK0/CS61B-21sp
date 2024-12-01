@@ -35,16 +35,17 @@ public class Commit implements Serializable {
         message = summary;
         Author = "JinYu";
         parentCommit = parent;
-        ID = Utils.sha1(date,blobs,message,Author,parentCommit);
     }
     public Commit(Date date){
         blobs = new ArrayList<>();
         this.date = date;
         message = "initial commit";
         Author = "JinYu";
-        ID = Utils.sha1(this.date,blobs,message,Author,parentCommit);
     }
-
+    public void setHash(Commit commit){
+        byte[] bytes = Utils.serialize(commit);
+        commit.ID = Utils.sha1(bytes);
+    }
     public String getHash() {
         return ID;
     }
