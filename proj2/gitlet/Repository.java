@@ -2,6 +2,7 @@ package gitlet;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -67,10 +68,9 @@ public class Repository {
         index.mkdir();
         removedStage.mkdir();
 
-        Commit initCommit = new Commit(new Date(0));
+        Commit initCommit = new Commit("initial commit",new Date(0));
 
-        //calculate the ID and create commit File by the ID given
-        initCommit.setHash(initCommit);
+        // create commit File by the ID given
         File commitFile = join(Commits, initCommit.getHash());
         commitFile.createNewFile();
         writeObject(commitFile,initCommit);
@@ -79,17 +79,21 @@ public class Repository {
                  create pointer "master" and "HEAD" point to the initial commit blob
                  */
     }
+
+    /**
+     * TODO:add Files(CurVersion) to Staging
+     * TODO:if the file has been staged,overwrite its copy in the staging
+     * TODO:if (current work version of the file) == (the version in the Commits ) don't stage it and remove it from staging
+     * TODO:if file has staged for removal than it will no longer be staged for removal
+     * @throws IOException
+     */
     public static void add() throws IOException {
         List<String> filenames = plainFilenamesIn(CWD);
+        ArrayList<blob> blobs = new ArrayList<>();
         for (String filename : filenames) {
-            File toAddFile = new File(filename);
-            //convert the file content to byte[]
-            byte[] readContents = readContents(toAddFile);
-            //create the blob to store the content (blob named by content2hashCode)
-            File blob = join(blobs,sha1(readContents));
-            blob.createNewFile();
-            //copy the file content to blob FILE
-            writeContents(blob,readContents);
+            File file = new File(filename);//convert String to file
+            blob blob = new blob(readContents(file),file.getName());//create blob by the File contents and name given
+            blobs.add(blob);
         }
 
     }
