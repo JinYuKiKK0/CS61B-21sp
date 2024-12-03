@@ -1,14 +1,16 @@
 package gitlet;
 
-public class blob {
+import java.io.Serializable;
+
+public class blob implements Serializable {
     private String id;
     private byte[] bytes;
-    private String refs;
+    private String fileName;
 
-    public blob(byte[] contents,String filePath){
+    public blob(byte[] contents,String filename){
         bytes = contents;
-        refs = filePath;
-        id = Utils.sha1(bytes,refs);
+        fileName = filename;
+        id = Utils.sha1(bytes, fileName);
     }
 
     public String getId() {
@@ -19,7 +21,7 @@ public class blob {
         return bytes;
     }
 
-    public String getRefs() {
-        return refs;
+    public String getFileName() {
+        return fileName;
     }
 }
