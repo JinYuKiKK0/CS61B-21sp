@@ -4,15 +4,15 @@ import static gitlet.Repository.*;
 
 public class PointerManager {
     public static void initializePointers(Commit initialCommit){
-        //将master指针指向initial commit
+        //Point the master pointer to initial commit
         writeContents(master,HEAD);
-        //将HEAD指针指向master
+        //Point the HEAD pointer to master
         writeContents(HEAD,initialCommit.getHash());
     }
 
     /**
      *
-     * @return 返回HEAD指针指向的commit对象的哈希值
+     * @return Returns the hash value of the commit object pointed to by the HEAD pointer
      */
     public static String getCurrentBranch(){
         return readContentsAsString(HEAD);

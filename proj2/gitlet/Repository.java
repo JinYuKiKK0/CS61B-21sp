@@ -36,13 +36,13 @@ public class Repository {
     public static final File objects = join(GITLET_DIR, "objects");
     public static final File Commits = join(objects, "Commits");
     public static final File blobs = join(objects, "blobs");
-    public static final File refs = join(GITLET_DIR, "refs");
-    public static final File heads = join(refs, "heads");
-    public static final File master = join(heads, "master");
-    public static final File remotes = join(refs, "remotes");
-    public static final File HEAD = join(GITLET_DIR, "HEAD");
-    public static final File index = join(GITLET_DIR, "index");
-    public static final File removedStage = join(GITLET_DIR, "removedStage");
+    public static final File branches = join(GITLET_DIR,"branches");
+    public static final File master = join(branches,"master");
+    public static final File HEAD = join(GITLET_DIR,"HEAD");
+    public static final File BRANCH = join(GITLET_DIR,"BRANCH");
+    public static final File Stages = join(GITLET_DIR,"Stages");
+    public static final File addStage = join(Stages,"addStage");
+    public static final File removeStage = join(Stages,"removeStage");
 
     /* TODO: fill in the rest of this class. */
     public static void init() throws IOException {
@@ -58,57 +58,14 @@ public class Repository {
         objects.mkdir();
         Commits.mkdir();
         blobs.mkdir();
-        refs.mkdir();
-        heads.mkdir();
+        branches.mkdir();
         master.createNewFile();
-        remotes.mkdir();
         HEAD.createNewFile();
-        index.createNewFile();
-        removedStage.createNewFile();
+        BRANCH.createNewFile();
+        Stages.mkdir();
+        addStage.createNewFile();
+        removeStage.createNewFile();
 
-        Commit initCommit = new Commit("initial commit",new Date(0));
-
-        // create commit File by the ID given
-        File commitFile = join(Commits, initCommit.getHash());
-        commitFile.createNewFile();
-        writeObject(commitFile,initCommit);
-
-        HashMap<String,String> fileMapblob = new HashMap<>();
-        writeObject(index,fileMapblob);//Create a hashMap to store a mapping of files and blobs
-
-        HashMap<String,String> toBeRemovefileMapblob = new HashMap<>();
-        writeObject(index,toBeRemovefileMapblob);//Create a hashMap to store a mapping of files and blobs
-
-        PointerManager.initializePointers(initCommit);
-                /*when init,create an initial commit blob in objects and
-                 create pointer "master" and "HEAD" point to the initial commit blob
-                 */
     }
 
-    /**
-     * TODO:add File(CurVersion) to Staging
-     * TODO:if the file has been staged,overwrite its copy in the staging
-     * TODO:if (current work version of the file) == (the version in the Commits ) don't stage it and remove it from staging
-     * TODO:if file has staged for removal than it will no longer be staged for removal
-     * @throws IOException
-     */
-    public static void add(String toBeAddFileName) throws IOException {
-        HashMap<String,String > fileMapblobIndex = readObject(index, HashMap.class);//read add info from staging
-        HashMap<String,String > toBeRemovefileMapblob = readObject(index, HashMap.class);//read removal info from staging
-
-        File toBeAddFile = new File(toBeAddFileName);
-        blob blob = new blob(readContents(toBeAddFile),toBeAddFileName);//convert add file to blob
-        File blobFile = join(blobs,blob.getId());
-        blobFile.createNewFile();
-        writeObject(blobFile,blob);//create file to store blob
-        fileMapblobIndex.put(blob.getFileName(),blob.getId());//add to staging
-        writeObject(index,fileMapblobIndex);
-
-        String currentBranch = PointerManager.getCurrentBranch();//Get the hash ID of the commit object pointed to by HEAD pointer
-        Commits.//get the commit object by the hashID given
-        //get the pathToBlobID of the commit object
-        //if blob(toBeAddFile).hashID ==  blob(pathToBlobID of the commit object).hashID
-        //don't stage it and remove it from staging
-        fileMapblobIndex.remove()
-    }
 }
