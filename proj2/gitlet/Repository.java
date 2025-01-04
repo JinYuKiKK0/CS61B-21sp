@@ -91,7 +91,7 @@ public class Repository {
             System.out.println("File does not exist.");
             return ;
         }
-        
+
         addStageMap = readObject(addStage,HashMap.class);
         removeStageMap = readObject(removeStage,HashMap.class);
         Blob tempBlob = new Blob(readContents(new File(fileName)),fileName);
