@@ -2,12 +2,12 @@ package gitlet;
 
 import java.io.Serializable;
 
-public class blob implements Serializable {
+public class Blob implements Serializable {
     private String id;
     private byte[] bytes;
     private String fileName;
 
-    public blob(byte[] contents,String filename){
+    public Blob(byte[] contents, String filename){
         bytes = contents;
         fileName = filename;
         id = Utils.sha1(bytes, fileName);

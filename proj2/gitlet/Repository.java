@@ -2,8 +2,8 @@ package gitlet;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.util.*;
+import java.io.Serializable;
+import gitlet.Utils;
 
 import static gitlet.Utils.*;
 
@@ -45,6 +45,12 @@ public class Repository {
     public static final File removeStage = join(Stages,"removeStage");
 
     /* TODO: fill in the rest of this class. */
+
+    public static <T extends Serializable> void saveToFile(T object, String fileName, File parentDIR) throws IOException{
+        File saveFile = join(parentDIR,fileName);
+        saveFile.createNewFile();
+        writeObject(saveFile,object);
+    }
     public static void init() throws IOException {
         if (GITLET_DIR.exists()) {
             System.out.println("A Gitlet version-control system already exists in the current directory.");
@@ -66,6 +72,11 @@ public class Repository {
         addStage.createNewFile();
         removeStage.createNewFile();
 
+        Commit initialCommit = new Commit();
+        saveToFile(initialCommit, initialCommit.getId(),Commits);
+    }
+    public static void add(String fileName){
+        serialize()
     }
 
 }

@@ -5,9 +5,9 @@ import static gitlet.Repository.*;
 public class PointerManager {
     public static void initializePointers(Commit initialCommit){
         //Point the master pointer to initial commit
-        writeContents(master,HEAD);
+        writeContents(master,initialCommit.getId());
         //Point the HEAD pointer to master
-        writeContents(HEAD,initialCommit.getHash());
+        writeContents(HEAD,initialCommit.getId());
     }
 
     /**
