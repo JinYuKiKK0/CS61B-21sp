@@ -3,6 +3,9 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.List;
+
 import gitlet.Utils;
 
 import static gitlet.Utils.*;
@@ -24,7 +27,8 @@ public class Repository {
      * comment above them describing what that variable represents and how that
      * variable is used. We've provided two examples for you.
      */
-
+    public static HashMap<String,String > addStageMap;
+    public static HashMap<String,String > removeStageMap;
     /**
      * The current working directory.
      */
@@ -72,11 +76,42 @@ public class Repository {
         addStage.createNewFile();
         removeStage.createNewFile();
 
+        //create addStage and removeStage
+        addStageMap = new HashMap<>();
+        removeStageMap = new HashMap<>();
+        writeObject(addStage,addStageMap);
+        writeObject(removeStage,removeStageMap);
+        //create initial commit and save it in objects/Commits
         Commit initialCommit = new Commit();
         saveToFile(initialCommit, initialCommit.getId(),Commits);
     }
     public static void add(String fileName){
-        serialize()
+        //if file does not exist
+        if(!plainFilenamesIn(CWD).contains(fileName)){
+            System.out.println("File does not exist.");
+            return ;
+        }
+        
+        addStageMap = readObject(addStage,HashMap.class);
+        removeStageMap = readObject(removeStage,HashMap.class);
+        Blob tempBlob = new Blob(readContents(new File(fileName)),fileName);
+        List<String> blobsFileName = plainFilenamesIn(blobs);
+
+        //if the file to be added is identical to the version in the blob ,don't add it
+        if(blobsFileName.contains(tempBlob.getId())){
+            return ;
+        }
+        //if this file exist in removeStage , remove if from removeStage(rm command)
+        if(removeStageMap.containsKey(tempBlob.getFileName())){
+            removeStageMap.remove(tempBlob.getFileName());
+        }
+        //add the file to the addStage
+        addStageMap.put(tempBlob.getFileName(),tempBlob.getId());
+        writeObject(addStage,addStageMap);
+    }
+    //
+    public static void rm(String fileName){
+
     }
 
 }
