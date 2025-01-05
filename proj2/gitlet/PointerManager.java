@@ -9,7 +9,9 @@ public class PointerManager {
         //Point the HEAD pointer to master
         writeContents(HEAD,initialCommit.getId());
     }
+    public static void pointerAdvance(){
 
+    }
     /**
      *
      * @return Returns the hash value of the commit object pointed to by the HEAD pointer

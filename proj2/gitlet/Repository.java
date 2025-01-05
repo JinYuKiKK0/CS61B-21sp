@@ -84,6 +84,8 @@ public class Repository {
         //create initial commit and save it in objects/Commits
         Commit initialCommit = new Commit();
         saveToFile(initialCommit, initialCommit.getId(),Commits);
+        //create HEAD and master pointer point to initial commit
+        PointerManager.initializePointers(initialCommit);
     }
     public static void add(String fileName){
         //if file does not exist
@@ -108,6 +110,13 @@ public class Repository {
         //add the file to the addStage
         addStageMap.put(tempBlob.getFileName(),tempBlob.getId());
         writeObject(addStage,addStageMap);
+    }
+    //TODO:clone the commit that HEAD point and modify its metadata with message and other info user provide
+    //TODO:modify new commit's refs to blob by Mapping relationship(e.g hello.txt->blob0.getID())
+    //TODO:modify commit's refs in addStage and removeStage
+    //TODO:give parent commit to the new commit and advance HEAD and master to the latest commit
+    public static void commit(String message){
+        String commitID = readContents(HEAD).toString();
     }
     //
     public static void rm(String fileName){
