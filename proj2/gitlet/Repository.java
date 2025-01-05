@@ -3,6 +3,7 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -116,10 +117,35 @@ public class Repository {
     //TODO:modify commit's refs in addStage and removeStage
     //TODO:give parent commit to the new commit and advance HEAD and master to the latest commit
     public static void commit(String message){
-        String commitID = readContents(HEAD).toString();
+        String commitID = PointerManager.getCurrentBranch();
+        
     }
-    //
+
     public static void rm(String fileName){
+         addStageMap = readObject(addStage, HashMap.class);
+         removeStageMap = readObject(removeStage,HashMap.class);
+         //remove it from addStage if this file has staged in addStage
+         if(addStageMap.containsKey(fileName)){
+             addStageMap.remove(fileName);
+         }
+         /* if this file doesn't in addStage but in the Latest commit that HEAD point to ,
+         * than add it in removeStage and remove it when commit command execute
+         * //TODO:for this circumstance,this file should delete from CWD
+         */
+         else {
+             String commitID = PointerManager.getCurrentBranch();
+             Commit latestCommit = readObject(join(Commits, commitID), Commit.class);
+             for (String blobID : latestCommit.getBlobsID()) {
+                 Blob readBlob = readObject(join(blobs, blobID), Blob.class);
+                 if(readBlob.getFileName().equals(fileName)){
+                     removeStageMap.put(fileName,readBlob.getId());
+                 }
+             }
+             //if this file doesn't staged or tracked by HEAD
+             System.out.println("No reason to remove the file.");
+
+         }
+
 
     }
 

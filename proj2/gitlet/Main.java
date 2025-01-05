@@ -27,6 +27,16 @@ public class Main {
                 Repository.add(args[1]);
                 break;
             // TODO: FILL THE REST IN
+            case "commit":
+                if(args[1] == null){
+                    System.out.println("Please enter a commit message.");
+                    break;
+                }
+                Repository.commit(args[1]);
+                break;
+            case "rm":
+                Repository.rm(args[1]);
+                break;
         }
     }
 }
