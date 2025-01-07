@@ -19,4 +19,12 @@ public class PointerManager {
     public static String getCurrentBranch(){
         return readContentsAsString(HEAD);
     }
+
+    /**
+     *
+     * @return Return the latestCommit that HEAD pointer point to
+     */
+    public static Commit getTheLatestCommit(){
+        return readObject(join(Commits, PointerManager.getCurrentBranch()), Commit.class);
+    }
 }

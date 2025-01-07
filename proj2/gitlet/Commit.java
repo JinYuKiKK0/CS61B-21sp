@@ -25,24 +25,22 @@ public class Commit implements Serializable {
     private String id;
     private String message;
     private String date;
-    private String author;
     private ArrayList<String> parentsID;
-    private ArrayList<String> blobsID;
+    //fileName -> blob.SHA-1
+    private TreeMap<String,String> blobsID;
 
     public Commit() {
         message = "initial commit";
-        author = "JinYu";
         parentsID = new ArrayList<>();
-        blobsID = new ArrayList<>();
+        blobsID = new TreeMap<String,String>();
         date = dateToTimeStamp(new Date(0));
         id = generateID();
     }
-    public Commit(String commitMessage) {
+    public Commit(String commitMessage,Commit parentCommit) {
         message = commitMessage;
-        author = "JinYu";
-        parentsID = new ArrayList<>();
-        blobsID = new ArrayList<>();
-        date = dateToTimeStamp(new Date());
+        parentsID = parentCommit.getParentsID();
+        blobsID = parentCommit.getBlobsID();
+        date =  dateToTimeStamp(new Date());
         id = generateID();
     }
 
@@ -50,7 +48,7 @@ public class Commit implements Serializable {
         return parentsID;
     }
 
-    public ArrayList<String> getBlobsID() {
+    public TreeMap<String, String> getBlobsID() {
         return blobsID;
     }
 
@@ -67,7 +65,7 @@ public class Commit implements Serializable {
     }
 
     private String generateID(){
-        return Utils.sha1(message,author,Utils.serialize(parentsID),Utils.serialize(blobsID),date);
+        return Utils.sha1(message,Utils.serialize(parentsID),Utils.serialize(blobsID),date);
     }
     private static String dateToTimeStamp(Date date) {
         DateFormat dateFormat = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.US);
