@@ -3,15 +3,12 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.function.BiConsumer;
 
 import gitlet.PointerManager;
 
-import static gitlet.PointerManager.getTheLatestCommit;
-import static gitlet.PointerManager.initializePointers;
+import static gitlet.PointerManager.*;
 import static gitlet.Utils.*;
 
 // TODO: any imports you need here
@@ -31,8 +28,8 @@ public class Repository {
      * comment above them describing what that variable represents and how that
      * variable is used. We've provided two examples for you.
      */
-    private static HashMap<String, String> addStageMap;
-    private static HashMap<String, String> removeStageMap;
+    private static Stage addStageMap;
+    private static Stage removeStageMap;
     /**
      * The current working directory.
      */
@@ -59,7 +56,14 @@ public class Repository {
         saveFile.createNewFile();
         writeObject(saveFile, object);
     }
-
+    private static void loadStage(){
+        addStageMap = readObject(addStage, Stage.class);
+        removeStageMap = readObject(removeStage, Stage.class);
+    }
+    private static void writeStage(){
+        writeObject(addStage,addStageMap);
+        writeObject(removeStage,removeStageMap);
+    }
     public static void init() throws IOException {
         if (GITLET_DIR.exists()) {
             System.out.println("A Gitlet version-control system already exists in the current directory.");
@@ -82,10 +86,9 @@ public class Repository {
         removeStage.createNewFile();
 
         //create addStage and removeStage
-        addStageMap = new HashMap<>();
-        removeStageMap = new HashMap<>();
-        writeObject(addStage, addStageMap);
-        writeObject(removeStage, removeStageMap);
+        addStageMap = new Stage(addStage);
+        removeStageMap = new Stage(removeStage);
+        writeStage();
         //create initial commit and save it in objects/Commits
         Commit initialCommit = new Commit();
         saveToFile(initialCommit, initialCommit.getId(), Commits);
@@ -100,8 +103,7 @@ public class Repository {
             return;
         }
 
-        addStageMap = readObject(addStage, HashMap.class);
-        removeStageMap = readObject(removeStage, HashMap.class);
+        loadStage();
         Blob tempBlob = new Blob(readContents(new File(fileName)), fileName);
         List<String> blobsFileName = plainFilenamesIn(blobs);
 
@@ -111,12 +113,12 @@ public class Repository {
         }
         //if this file exist in removeStage , remove if from removeStage(rm command)
         if (removeStageMap.containsKey(tempBlob.getFileName())) {
-            removeStageMap.remove(tempBlob.getFileName());
+            removeStageMap.stageRemove(tempBlob.getFileName());
+            return;
         }
         //add the file to the addStage
         saveToFile(tempBlob,tempBlob.getId(),blobs);
-        addStageMap.put(tempBlob.getFileName(), tempBlob.getId());
-        writeObject(addStage, addStageMap);
+        addStageMap.stageSave(tempBlob.getFileName(),tempBlob.getId());
     }
 
     //TODO:clone the commit that HEAD point and modify its metadata with message and other info user provide
@@ -124,21 +126,37 @@ public class Repository {
     //TODO:modify commit's refs in addStage and removeStage
     //TODO:give parent commit to the new commit and advance HEAD and master to the latest commit
     public static void commit(String message) {
-        Commit cloneLatestCommit = getTheLatestCommit();
-        addStageMap = readObject(addStage, HashMap.class);
-        removeStageMap = readObject(removeStage, HashMap.class);
-        Set<Map.Entry<String, String>> addEntries = addStageMap.entrySet();
-        Set<Map.Entry<String, String>> removeEntries = removeStageMap.entrySet();
+        String parentID = getCurrentBranch();
+        Commit cloneLatestCommit = new Commit(message,getTheLatestCommit());
+        TreeMap<String, String> commitBlobsID = cloneLatestCommit.getBlobsID();
+        loadStage();
 
+        addStageMap.forEach((fileName, blobID) -> commitBlobsID.put(fileName,blobID));
+
+        removeStageMap.forEach((fileName, blobID) -> {
+            commitBlobsID.remove(fileName);
+            //delete rm file from CWD
+            restrictedDelete(join(CWD, fileName));
+            //delete rm file -> blob from blobs
+            restrictedDelete(join(blobs,blobID));
+        });
+        //modify the clone commit
+        cloneLatestCommit.setBlobsID(commitBlobsID);
+        cloneLatestCommit.setParentsID(parentID);
+        //advance the pointer to new latest commit
+        pointerAdvance(cloneLatestCommit);
+        //clear stage
+        addStageMap.clear();
+        removeStageMap.clear();
+        writeStage();
     }
 
     public static void rm(String fileName) {
-        addStageMap = readObject(addStage, HashMap.class);
-        removeStageMap = readObject(removeStage, HashMap.class);
+        loadStage();
         //remove it from addStage if this file has staged in addStage
         if (addStageMap.containsKey(fileName)) {
-            addStageMap.remove(fileName);
-            writeObject(addStage, addStageMap);
+            addStageMap.stageRemove(fileName);
+            return;
         }
         /* if this file doesn't in addStage but in the Latest commit that HEAD point to ,
          * than add it in removeStage and remove it when commit command execute
@@ -149,8 +167,7 @@ public class Repository {
             Set<Map.Entry<String, String>> entries = latestCommit.getBlobsID().entrySet();
             for (Map.Entry<String, String> entry : entries) {
                 if (entry.getKey().equals(fileName)) {
-                    removeStageMap.put(fileName, entry.getValue());
-                    writeObject(removeStage, removeStageMap);
+                    removeStageMap.stageSave(fileName,entry.getValue());
                     return;
                 }
             }

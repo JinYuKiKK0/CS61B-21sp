@@ -9,8 +9,9 @@ public class PointerManager {
         //Point the HEAD pointer to master
         writeContents(HEAD,initialCommit.getId());
     }
-    public static void pointerAdvance(){
-
+    public static void pointerAdvance(Commit nextCommit){
+        writeContents(master,nextCommit.getId());
+        writeContents(HEAD,nextCommit.getId());
     }
     /**
      *

@@ -25,14 +25,14 @@ public class Commit implements Serializable {
     private String id;
     private String message;
     private String date;
-    private ArrayList<String> parentsID;
+    private String  parentsID;
     //fileName -> blob.SHA-1
     private TreeMap<String,String> blobsID;
 
     public Commit() {
         message = "initial commit";
-        parentsID = new ArrayList<>();
-        blobsID = new TreeMap<String,String>();
+        parentsID = null;
+        blobsID = new TreeMap<>();
         date = dateToTimeStamp(new Date(0));
         id = generateID();
     }
@@ -44,7 +44,7 @@ public class Commit implements Serializable {
         id = generateID();
     }
 
-    public ArrayList<String> getParentsID() {
+    public String getParentsID() {
         return parentsID;
     }
 
@@ -56,14 +56,12 @@ public class Commit implements Serializable {
         return id;
     }
 
-    public void setMessage(String message) {
-        this.message = message;
+    public void setBlobsID(TreeMap<String,String > file2blob){
+        blobsID = file2blob;
     }
-
-    public void setDate(String date) {
-        this.date = date;
+    public void setParentsID(String parentsID){
+        this.parentsID = parentsID;
     }
-
     private String generateID(){
         return Utils.sha1(message,Utils.serialize(parentsID),Utils.serialize(blobsID),date);
     }
