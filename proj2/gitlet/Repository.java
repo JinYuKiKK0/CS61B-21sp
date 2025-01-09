@@ -51,6 +51,30 @@ public class Repository {
 
     /* TODO: fill in the rest of this class. */
 
+    private static void createDirectoriesAndFiles() throws IOException{
+        //create a .gitlet directory as Gitlet Repository
+        GITLET_DIR.mkdir();
+            /*create a Staging Area in .gitlet ; Staging Area will keep track of
+            all the files that are staged for addition or removal
+             */
+        objects.mkdir();
+        Commits.mkdir();
+        blobs.mkdir();
+        branches.mkdir();
+        master.createNewFile();
+        HEAD.createNewFile();
+        BRANCH.createNewFile();
+        Stages.mkdir();
+        addStage.createNewFile();
+        removeStage.createNewFile();
+
+    }
+    private static void initializeStages(){
+        //create addStage and removeStage
+        addStageMap = new Stage(addStage);
+        removeStageMap = new Stage(removeStage);
+        writeStage();
+    }
     private static <T extends Serializable> void saveToFile(T object, String fileName, File parentDIR) throws IOException {
         File saveFile = join(parentDIR, fileName);
         saveFile.createNewFile();
@@ -72,70 +96,48 @@ public class Repository {
             System.out.println("A Gitlet version-control system already exists in the current directory.");
             System.exit(0);
         }
-        //create a .gitlet directory as Gitlet Repository
-        GITLET_DIR.mkdir();
-            /*create a Staging Area in .gitlet ; Staging Area will keep track of
-            all the files that are staged for addition or removal
-             */
-        objects.mkdir();
-        Commits.mkdir();
-        blobs.mkdir();
-        branches.mkdir();
-        master.createNewFile();
-        HEAD.createNewFile();
-        BRANCH.createNewFile();
-        Stages.mkdir();
-        addStage.createNewFile();
-        removeStage.createNewFile();
-
-        //create addStage and removeStage
-        addStageMap = new Stage(addStage);
-        removeStageMap = new Stage(removeStage);
-        writeStage();
+        createDirectoriesAndFiles();
+        initializeStages();
         //create initial commit and save it in objects/Commits
         Commit initialCommit = new Commit();
         saveToFile(initialCommit, initialCommit.getId(), Commits);
         //create HEAD and master pointer point to initial commit
         initializePointers(initialCommit);
     }
-
+    private static boolean isBlobIdentical(Blob tempBlob){
+        return plainFilenamesIn(blobs).contains(tempBlob.getId());
+    }
     public static void add(String fileName) throws IOException {
         //if file does not exist
         if (!plainFilenamesIn(CWD).contains(fileName)) {
             System.out.println("File does not exist.");
             return;
         }
-
         loadStage();
         Blob tempBlob = new Blob(readContents(new File(fileName)), fileName);
-        List<String> blobsFileName = plainFilenamesIn(blobs);
-
         //if the file to be added is identical to the version in the blob ,don't add it
-        if (blobsFileName.contains(tempBlob.getId())) {
-            return;
-        }
+        if (isBlobIdentical(tempBlob)) {return;}
         //if this file exist in removeStage , remove if from removeStage(rm command)
         if (removeStageMap.containsKey(tempBlob.getFileName())) {
             removeStageMap.stageRemove(tempBlob.getFileName());
-            return;
+        }else {
+            //add the file to the addStage
+            saveToFile(tempBlob, tempBlob.getId(), blobs);
+            addStageMap.stageSave(tempBlob.getFileName(),tempBlob.getId());
         }
-        //add the file to the addStage
-        saveToFile(tempBlob, tempBlob.getId(), blobs);
-        addStageMap.stageSave(tempBlob.getFileName(), tempBlob.getId());
+        writeStage();
     }
-
     //TODO:clone the commit that HEAD point and modify its metadata with message and other info user provide
     //TODO:modify new commit's refs to blob by Mapping relationship(e.g hello.txt->blob0.getID())
     //TODO:modify commit's refs in addStage and removeStage
     //TODO:give parent commit to the new commit and advance HEAD and master to the latest commit
-    public static void commit(String message) {
+    public static void commit(String message) throws IOException{
         String parentID = getCurrentBranch();
         Commit cloneLatestCommit = new Commit(message, getTheLatestCommit());
         TreeMap<String, String> commitBlobsID = cloneLatestCommit.getBlobsID();
         loadStage();
 
         addStageMap.forEach((fileName, blobID) -> commitBlobsID.put(fileName, blobID));
-
         removeStageMap.forEach((fileName, blobID) -> {
             commitBlobsID.remove(fileName);
             //delete rm file from CWD
@@ -152,6 +154,7 @@ public class Repository {
         addStageMap.clear();
         removeStageMap.clear();
         writeStage();
+        saveToFile(cloneLatestCommit, cloneLatestCommit.getId(), blobs);
     }
 
     public static void rm(String fileName) {
