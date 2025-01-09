@@ -80,12 +80,13 @@ public class Repository {
         saveFile.createNewFile();
         writeObject(saveFile, object);
     }
-
+    //read Stage from file
     private static void loadStage() {
         addStageMap = readObject(addStage, Stage.class);
         removeStageMap = readObject(removeStage, Stage.class);
     }
 
+    //write Stage into  file
     private static void writeStage() {
         writeObject(addStage, addStageMap);
         writeObject(removeStage, removeStageMap);
@@ -104,6 +105,8 @@ public class Repository {
         //create HEAD and master pointer point to initial commit
         initializePointers(initialCommit);
     }
+
+
     private static boolean isBlobIdentical(Blob tempBlob){
         return plainFilenamesIn(blobs).contains(tempBlob.getId());
     }
@@ -114,11 +117,11 @@ public class Repository {
             return;
         }
         loadStage();
-        Blob tempBlob = new Blob(readContents(new File(fileName)), fileName);
+        Blob tempBlob = new Blob(readContents(join(CWD,fileName)), fileName);
         //if the file to be added is identical to the version in the blob ,don't add it
         if (isBlobIdentical(tempBlob)) {return;}
         //if this file exist in removeStage , remove if from removeStage(rm command)
-        if (removeStageMap.containsKey(tempBlob.getFileName())) {
+        else if (removeStageMap.containsKey(tempBlob.getFileName())) {
             removeStageMap.stageRemove(tempBlob.getFileName());
         }else {
             //add the file to the addStage
@@ -136,7 +139,9 @@ public class Repository {
         Commit cloneLatestCommit = new Commit(message, getTheLatestCommit());
         TreeMap<String, String> commitBlobsID = cloneLatestCommit.getBlobsID();
         loadStage();
-
+        if(addStageMap.isEmpty()&&removeStageMap.isEmpty()){
+            System.out.println("No changes added to the commit.");
+        }
         addStageMap.forEach((fileName, blobID) -> commitBlobsID.put(fileName, blobID));
         removeStageMap.forEach((fileName, blobID) -> {
             commitBlobsID.remove(fileName);
@@ -147,7 +152,7 @@ public class Repository {
         });
         //modify the clone commit
         cloneLatestCommit.setBlobsID(commitBlobsID);
-        cloneLatestCommit.setParentsID(parentID);
+        cloneLatestCommit.setParent(parentID);
         //advance the pointer to new latest commit
         pointerAdvance(cloneLatestCommit);
         //clear stage

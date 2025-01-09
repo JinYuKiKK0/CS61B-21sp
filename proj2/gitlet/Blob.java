@@ -1,6 +1,8 @@
 package gitlet;
 
+import java.io.File;
 import java.io.Serializable;
+import java.util.Arrays;
 
 public class Blob implements Serializable {
     private String id;
@@ -23,5 +25,10 @@ public class Blob implements Serializable {
 
     public String getFileName() {
         return fileName;
+    }
+
+    public boolean isContentChanged(File file){
+        byte[] readContents = Utils.readContents(file);
+        return !Arrays.equals(this.bytes,readContents);
     }
 }

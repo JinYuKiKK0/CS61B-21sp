@@ -25,7 +25,7 @@ public class Commit implements Serializable {
     private String id;
     private String message;
     private String date;
-    private String  parentsID;
+    private ArrayList<String>  parentsID;
     //fileName -> blob.SHA-1
     private TreeMap<String,String> blobsID;
 
@@ -44,7 +44,7 @@ public class Commit implements Serializable {
         id = generateID();
     }
 
-    public String getParentsID() {
+    public ArrayList<String> getParentsID() {
         return parentsID;
     }
 
@@ -59,8 +59,13 @@ public class Commit implements Serializable {
     public void setBlobsID(TreeMap<String,String > file2blob){
         blobsID = file2blob;
     }
-    public void setParentsID(String parentsID){
+    public void setParentsID(ArrayList<String> parentsID){
         this.parentsID = parentsID;
+    }
+    //TODO: before BRANCH finished
+    public void setParent(String parentID){
+        this.parentsID.clear();
+        this.parentsID.add(parentID);
     }
     private String generateID(){
         return Utils.sha1(message,Utils.serialize(parentsID),Utils.serialize(blobsID),date);
