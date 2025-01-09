@@ -56,14 +56,17 @@ public class Repository {
         saveFile.createNewFile();
         writeObject(saveFile, object);
     }
-    private static void loadStage(){
+
+    private static void loadStage() {
         addStageMap = readObject(addStage, Stage.class);
         removeStageMap = readObject(removeStage, Stage.class);
     }
-    private static void writeStage(){
-        writeObject(addStage,addStageMap);
-        writeObject(removeStage,removeStageMap);
+
+    private static void writeStage() {
+        writeObject(addStage, addStageMap);
+        writeObject(removeStage, removeStageMap);
     }
+
     public static void init() throws IOException {
         if (GITLET_DIR.exists()) {
             System.out.println("A Gitlet version-control system already exists in the current directory.");
@@ -117,8 +120,8 @@ public class Repository {
             return;
         }
         //add the file to the addStage
-        saveToFile(tempBlob,tempBlob.getId(),blobs);
-        addStageMap.stageSave(tempBlob.getFileName(),tempBlob.getId());
+        saveToFile(tempBlob, tempBlob.getId(), blobs);
+        addStageMap.stageSave(tempBlob.getFileName(), tempBlob.getId());
     }
 
     //TODO:clone the commit that HEAD point and modify its metadata with message and other info user provide
@@ -127,18 +130,18 @@ public class Repository {
     //TODO:give parent commit to the new commit and advance HEAD and master to the latest commit
     public static void commit(String message) {
         String parentID = getCurrentBranch();
-        Commit cloneLatestCommit = new Commit(message,getTheLatestCommit());
+        Commit cloneLatestCommit = new Commit(message, getTheLatestCommit());
         TreeMap<String, String> commitBlobsID = cloneLatestCommit.getBlobsID();
         loadStage();
 
-        addStageMap.forEach((fileName, blobID) -> commitBlobsID.put(fileName,blobID));
+        addStageMap.forEach((fileName, blobID) -> commitBlobsID.put(fileName, blobID));
 
         removeStageMap.forEach((fileName, blobID) -> {
             commitBlobsID.remove(fileName);
             //delete rm file from CWD
             restrictedDelete(join(CWD, fileName));
             //delete rm file -> blob from blobs
-            restrictedDelete(join(blobs,blobID));
+            restrictedDelete(join(blobs, blobID));
         });
         //modify the clone commit
         cloneLatestCommit.setBlobsID(commitBlobsID);
@@ -167,7 +170,7 @@ public class Repository {
             Set<Map.Entry<String, String>> entries = latestCommit.getBlobsID().entrySet();
             for (Map.Entry<String, String> entry : entries) {
                 if (entry.getKey().equals(fileName)) {
-                    removeStageMap.stageSave(fileName,entry.getValue());
+                    removeStageMap.stageSave(fileName, entry.getValue());
                     return;
                 }
             }
