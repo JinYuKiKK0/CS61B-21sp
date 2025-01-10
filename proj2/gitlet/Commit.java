@@ -25,9 +25,9 @@ public class Commit implements Serializable {
     private String id;
     private String message;
     private String date;
-    private ArrayList<String>  parentsID;
+    private ArrayList<String> parentsID;
     //fileName -> blob.SHA-1
-    private TreeMap<String,String> blobsID;
+    private TreeMap<String, String> blobsID;
 
     public Commit() {
         message = "initial commit";
@@ -36,11 +36,12 @@ public class Commit implements Serializable {
         date = dateToTimeStamp(new Date(0));
         id = generateID();
     }
-    public Commit(String commitMessage,Commit parentCommit) {
+
+    public Commit(String commitMessage, Commit parentCommit) {
         message = commitMessage;
         parentsID = parentCommit.getParentsID();
         blobsID = parentCommit.getBlobsID();
-        date =  dateToTimeStamp(new Date());
+        date = dateToTimeStamp(new Date());
         id = generateID();
     }
 
@@ -56,21 +57,24 @@ public class Commit implements Serializable {
         return id;
     }
 
-    public void setBlobsID(TreeMap<String,String > file2blob){
+    public void setBlobsID(TreeMap<String, String> file2blob) {
         blobsID = file2blob;
     }
 
     //TODO: before BRANCH finished
-    public void setParent(String parentID){
+    public void setParent(String parentID) {
         this.parentsID.clear();
         this.parentsID.add(parentID);
     }
-    private String generateID(){
-        return Utils.sha1(message,date,parentsID.toString(),blobsID.toString());
+
+    private String generateID() {
+        return Utils.sha1(message, date, parentsID.toString(), blobsID.toString());
     }
-    public String getParentCommit(){
+
+    public String getParentCommit() {
         return parentsID.toString();
     }
+
     private static String dateToTimeStamp(Date date) {
         DateFormat dateFormat = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.US);
         return dateFormat.format(date);

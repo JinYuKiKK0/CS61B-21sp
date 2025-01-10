@@ -27,8 +27,8 @@ public class Blob implements Serializable {
         return fileName;
     }
 
-    public boolean isContentChanged(File file){
+    public boolean isContentChanged(File file) {
         byte[] readContents = Utils.readContents(file);
-        return !Arrays.equals(this.bytes,readContents);
+        return !Arrays.equals(this.bytes, readContents);
     }
 }

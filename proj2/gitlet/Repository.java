@@ -110,19 +110,21 @@ public class Repository {
     private static boolean isBlobIdentical(Blob tempBlob){
         return plainFilenamesIn(blobs).contains(tempBlob.getId());
     }
-    private static boolean isFileExist(String fileName){
-        return plainFilenamesIn(CWD).contains(fileName);
+    private static void isFileExist(String fileName){
+        if(!plainFilenamesIn(CWD).contains(fileName)){
+            throw new IllegalArgumentException("File does not exist");
+        }
     }
     public static void add(String fileName) throws IOException {
         //if file does not exist
-        if (!isFileExist(fileName)) {
-            System.out.println("File does not exist.");
-            return;
-        }
+        isFileExist(fileName);
+
         loadStage();
         Blob tempBlob = new Blob(readContents(join(CWD,fileName)), fileName);
         //if the file to be added is identical to the version in the blob ,don't add it
-        if (isBlobIdentical(tempBlob)) {return;}
+        if (isBlobIdentical(tempBlob)) {
+            System.out.println("This file is up to date");
+        }
         //if this file exist in removeStage , remove if from removeStage(rm command)
         else if (removeStageMap.containsKey(tempBlob.getFileName())) {
             removeStageMap.stageRemove(tempBlob.getFileName());
@@ -166,13 +168,13 @@ public class Repository {
     }
 
     public static void rm(String fileName) {
-        if (!isFileExist(fileName)) {
-            System.out.println("File does not exist.");
-            return;
-        }
+        isFileExist(fileName);
+
         loadStage();
         //remove it from addStage if this file has staged in addStage
         if (addStageMap.containsKey(fileName)) {
+            System.out.println(addStageMap.get(fileName));
+            restrictedDelete(join(blobs,addStageMap.get(fileName)));
             addStageMap.stageRemove(fileName);
             return;
         }
