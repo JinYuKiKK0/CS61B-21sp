@@ -59,9 +59,7 @@ public class Commit implements Serializable {
     public void setBlobsID(TreeMap<String,String > file2blob){
         blobsID = file2blob;
     }
-    public void setParentsID(ArrayList<String> parentsID){
-        this.parentsID = parentsID;
-    }
+    
     //TODO: before BRANCH finished
     public void setParent(String parentID){
         this.parentsID.clear();
