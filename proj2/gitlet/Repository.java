@@ -110,9 +110,12 @@ public class Repository {
     private static boolean isBlobIdentical(Blob tempBlob){
         return plainFilenamesIn(blobs).contains(tempBlob.getId());
     }
+    private static boolean isFileExist(String fileName){
+        return plainFilenamesIn(CWD).contains(fileName);
+    }
     public static void add(String fileName) throws IOException {
         //if file does not exist
-        if (!plainFilenamesIn(CWD).contains(fileName)) {
+        if (!isFileExist(fileName)) {
             System.out.println("File does not exist.");
             return;
         }
@@ -163,6 +166,10 @@ public class Repository {
     }
 
     public static void rm(String fileName) {
+        if (!isFileExist(fileName)) {
+            System.out.println("File does not exist.");
+            return;
+        }
         loadStage();
         //remove it from addStage if this file has staged in addStage
         if (addStageMap.containsKey(fileName)) {
@@ -170,7 +177,7 @@ public class Repository {
             return;
         }
         /* if this file doesn't in addStage but in the Latest commit that HEAD point to ,
-         * than add it in removeStage and remove it when commit command execute
+         * than add it in removeStage and delete it when commit command execute
          * //TODO:for this circumstance,this file should delete from CWD
          */
         else {
@@ -186,5 +193,6 @@ public class Repository {
         //if this file doesn't staged or tracked by HEAD
         System.out.println("No reason to remove the file.");
     }
+
 }
 

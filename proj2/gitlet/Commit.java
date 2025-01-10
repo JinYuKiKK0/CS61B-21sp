@@ -31,7 +31,7 @@ public class Commit implements Serializable {
 
     public Commit() {
         message = "initial commit";
-        parentsID = null;
+        parentsID = new ArrayList<>();
         blobsID = new TreeMap<>();
         date = dateToTimeStamp(new Date(0));
         id = generateID();
@@ -59,14 +59,17 @@ public class Commit implements Serializable {
     public void setBlobsID(TreeMap<String,String > file2blob){
         blobsID = file2blob;
     }
-    
+
     //TODO: before BRANCH finished
     public void setParent(String parentID){
         this.parentsID.clear();
         this.parentsID.add(parentID);
     }
     private String generateID(){
-        return Utils.sha1(message,Utils.serialize(parentsID),Utils.serialize(blobsID),date);
+        return Utils.sha1(message,date,parentsID.toString(),blobsID.toString());
+    }
+    public String getParentCommit(){
+        return parentsID.toString();
     }
     private static String dateToTimeStamp(Date date) {
         DateFormat dateFormat = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.US);
