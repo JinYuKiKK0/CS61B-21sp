@@ -3,6 +3,7 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.sql.SQLOutput;
 import java.util.*;
 import java.util.function.BiConsumer;
 
@@ -69,6 +70,12 @@ public class Repository {
         removeStage.createNewFile();
 
     }
+    private static void isGITLET_DIR_Exist(){
+        if(!GITLET_DIR.exists()){
+            System.out.println("There is no .gitlet in your CWD");
+            System.exit(0);
+        }
+    }
     private static void initializeStages(){
         //create addStage and removeStage
         addStageMap = new Stage(addStage);
@@ -116,6 +123,7 @@ public class Repository {
         }
     }
     public static void add(String fileName) throws IOException {
+        isGITLET_DIR_Exist();
         //if file does not exist
         isFileExist(fileName);
 
@@ -140,12 +148,15 @@ public class Repository {
     //TODO:modify commit's refs in addStage and removeStage
     //TODO:give parent commit to the new commit and advance HEAD and master to the latest commit
     public static void commit(String message) throws IOException{
+        isGITLET_DIR_Exist();
+
         String parentID = getCurrentBranch();
         Commit cloneLatestCommit = new Commit(message, getTheLatestCommit());
         TreeMap<String, String> commitBlobsID = cloneLatestCommit.getBlobsID();
         loadStage();
         if(addStageMap.isEmpty()&&removeStageMap.isEmpty()){
             System.out.println("No changes added to the commit.");
+            return;
         }
         addStageMap.forEach((fileName, blobID) -> commitBlobsID.put(fileName, blobID));
         removeStageMap.forEach((fileName, blobID) -> {
@@ -164,17 +175,18 @@ public class Repository {
         addStageMap.clear();
         removeStageMap.clear();
         writeStage();
-        saveToFile(cloneLatestCommit, cloneLatestCommit.getId(), blobs);
+        saveToFile(cloneLatestCommit, cloneLatestCommit.getId(), Commits);
     }
 
     public static void rm(String fileName) {
+        isGITLET_DIR_Exist();
+
         isFileExist(fileName);
 
         loadStage();
         //remove it from addStage if this file has staged in addStage
         if (addStageMap.containsKey(fileName)) {
             System.out.println(addStageMap.get(fileName));
-            restrictedDelete(join(blobs,addStageMap.get(fileName)));
             addStageMap.stageRemove(fileName);
             return;
         }
