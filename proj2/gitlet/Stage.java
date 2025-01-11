@@ -22,4 +22,9 @@ public class Stage extends HashMap<String,String> {
         Utils.writeObject(this.stageFile,this);
     }
 
+    public void stageRestricterRemove(String fileName){
+        if(this.containsKey(fileName)){
+            this.stageRemove(fileName);
+        }
+    }
 }

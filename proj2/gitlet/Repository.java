@@ -52,7 +52,7 @@ public class Repository {
 
     /* TODO: fill in the rest of this class. */
 
-    private static void createDirectoriesAndFiles() throws IOException{
+    private static void createDirectoriesAndFiles() throws IOException {
         //create a .gitlet directory as Gitlet Repository
         GITLET_DIR.mkdir();
             /*create a Staging Area in .gitlet ; Staging Area will keep track of
@@ -70,23 +70,27 @@ public class Repository {
         removeStage.createNewFile();
 
     }
-    private static void isGITLET_DIR_Exist(){
-        if(!GITLET_DIR.exists()){
+
+    private static void isGITLET_DIR_Exist() {
+        if (!GITLET_DIR.exists()) {
             System.out.println("There is no .gitlet in your CWD");
             System.exit(0);
         }
     }
-    private static void initializeStages(){
+
+    private static void initializeStages() {
         //create addStage and removeStage
         addStageMap = new Stage(addStage);
         removeStageMap = new Stage(removeStage);
         writeStage();
     }
+
     private static <T extends Serializable> void saveToFile(T object, String fileName, File parentDIR) throws IOException {
         File saveFile = join(parentDIR, fileName);
         saveFile.createNewFile();
         writeObject(saveFile, object);
     }
+
     //read Stage from file
     private static void loadStage() {
         addStageMap = readObject(addStage, Stage.class);
@@ -114,21 +118,22 @@ public class Repository {
     }
 
 
-    private static boolean isBlobIdentical(Blob tempBlob){
+    private static boolean isBlobIdentical(Blob tempBlob) {
         return plainFilenamesIn(blobs).contains(tempBlob.getId());
     }
-    private static void isFileExist(String fileName){
-        if(!plainFilenamesIn(CWD).contains(fileName)){
+
+    private static void isFileExist(String fileName) {
+        if (!plainFilenamesIn(CWD).contains(fileName)) {
             throw new IllegalArgumentException("File does not exist");
         }
     }
+
     public static void add(String fileName) throws IOException {
         isGITLET_DIR_Exist();
         //if file does not exist
         isFileExist(fileName);
-
         loadStage();
-        Blob tempBlob = new Blob(readContents(join(CWD,fileName)), fileName);
+        Blob tempBlob = new Blob(readContents(join(CWD, fileName)), fileName);
         //if the file to be added is identical to the version in the blob ,don't add it
         if (isBlobIdentical(tempBlob)) {
             System.out.println("This file is up to date");
@@ -136,25 +141,60 @@ public class Repository {
         //if this file exist in removeStage , remove if from removeStage(rm command)
         else if (removeStageMap.containsKey(tempBlob.getFileName())) {
             removeStageMap.stageRemove(tempBlob.getFileName());
-        }else {
+        } else {
             //add the file to the addStage
             saveToFile(tempBlob, tempBlob.getId(), blobs);
-            addStageMap.stageSave(tempBlob.getFileName(),tempBlob.getId());
+            addStageMap.stageSave(tempBlob.getFileName(), tempBlob.getId());
         }
         writeStage();
     }
+
+    private static boolean isFileExistInLatestCommit(String fileName, Commit latestCommit) {
+        Set<Map.Entry<String, String>> entries = latestCommit.getBlobsID().entrySet();
+        for (Map.Entry<String, String> entry : entries) {
+            if (entry.getKey().equals(fileName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void rm(String fileName) {
+        isGITLET_DIR_Exist();
+        isFileExist(fileName);
+
+        loadStage();
+        //remove it from addStage if this file has staged in addStage
+        if (addStageMap.containsKey(fileName)) {
+            addStageMap.stageRemove(fileName);
+            return;
+        }
+        /* if this file doesn't in addStage but in the Latest commit that HEAD point to ,
+         * than add it in removeStage and delete it when commit command execute
+         * //TODO:for this circumstance,this file should delete from CWD
+         */
+        else {
+            Commit latestCommit = getTheLatestCommit();
+            if(isFileExistInLatestCommit(fileName, latestCommit)){
+                removeStageMap.stageSave(fileName,latestCommit.getBlobsID().get(fileName));
+            }
+        }
+        //if this file doesn't staged or tracked by HEAD
+        System.out.println("No reason to remove the file.");
+    }
+
     //TODO:clone the commit that HEAD point and modify its metadata with message and other info user provide
     //TODO:modify new commit's refs to blob by Mapping relationship(e.g hello.txt->blob0.getID())
     //TODO:modify commit's refs in addStage and removeStage
     //TODO:give parent commit to the new commit and advance HEAD and master to the latest commit
-    public static void commit(String message) throws IOException{
+    public static void commit(String message) throws IOException {
         isGITLET_DIR_Exist();
 
         String parentID = getCurrentBranch();
         Commit cloneLatestCommit = new Commit(message, getTheLatestCommit());
         TreeMap<String, String> commitBlobsID = cloneLatestCommit.getBlobsID();
         loadStage();
-        if(addStageMap.isEmpty()&&removeStageMap.isEmpty()){
+        if (addStageMap.isEmpty() && removeStageMap.isEmpty()) {
             System.out.println("No changes added to the commit.");
             return;
         }
@@ -177,36 +217,5 @@ public class Repository {
         writeStage();
         saveToFile(cloneLatestCommit, cloneLatestCommit.getId(), Commits);
     }
-
-    public static void rm(String fileName) {
-        isGITLET_DIR_Exist();
-
-        isFileExist(fileName);
-
-        loadStage();
-        //remove it from addStage if this file has staged in addStage
-        if (addStageMap.containsKey(fileName)) {
-            System.out.println(addStageMap.get(fileName));
-            addStageMap.stageRemove(fileName);
-            return;
-        }
-        /* if this file doesn't in addStage but in the Latest commit that HEAD point to ,
-         * than add it in removeStage and delete it when commit command execute
-         * //TODO:for this circumstance,this file should delete from CWD
-         */
-        else {
-            Commit latestCommit = getTheLatestCommit();
-            Set<Map.Entry<String, String>> entries = latestCommit.getBlobsID().entrySet();
-            for (Map.Entry<String, String> entry : entries) {
-                if (entry.getKey().equals(fileName)) {
-                    removeStageMap.stageSave(fileName, entry.getValue());
-                    return;
-                }
-            }
-        }
-        //if this file doesn't staged or tracked by HEAD
-        System.out.println("No reason to remove the file.");
-    }
-
 }
 
