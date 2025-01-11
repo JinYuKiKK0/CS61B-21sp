@@ -3,11 +3,7 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.sql.SQLOutput;
 import java.util.*;
-import java.util.function.BiConsumer;
-
-import gitlet.PointerManager;
 
 import static gitlet.PointerManager.*;
 import static gitlet.Utils.*;
@@ -117,28 +113,37 @@ public class Repository {
         initializePointers(initialCommit);
     }
 
-
-    private static boolean isBlobIdentical(Blob tempBlob) {
-        return plainFilenamesIn(blobs).contains(tempBlob.getId());
+    //judge curFile's version ==curCommit 's version
+    private static boolean isBlobIdenticalToCommit(Blob blob) {
+        TreeMap<String, String> blobsID = getTheLatestCommit().getBlobsID();
+        if (blobsID.containsValue(blob.getId())) {
+            return true;
+        }
+        return false;
     }
 
-    private static void isFileExist(String fileName) {
+    private static boolean isFileExistInCWD(String fileName) {
         if (!plainFilenamesIn(CWD).contains(fileName)) {
-            throw new IllegalArgumentException("File does not exist");
+            return false;
         }
+        return true;
     }
 
     public static void add(String fileName) throws IOException {
         isGITLET_DIR_Exist();
         //if file does not exist
-        isFileExist(fileName);
+        if (!isFileExistInCWD(fileName)) {
+            System.out.println("File does no exist");
+            return;
+        }
         loadStage();
         Blob tempBlob = new Blob(readContents(join(CWD, fileName)), fileName);
-        //if the file to be added is identical to the version in the blob ,don't add it
-        if (isBlobIdentical(tempBlob)) {
+        //curFile version == curCommit version , don't add
+        if (isBlobIdenticalToCommit(tempBlob)) {
             System.out.println("This file is up to date");
+            addStageMap.stageRestrictRemove(tempBlob.getFileName());
         }
-        //if this file exist in removeStage , remove if from removeStage(rm command)
+        //if this file exist in removeStage , remove it from removeStage
         else if (removeStageMap.containsKey(tempBlob.getFileName())) {
             removeStageMap.stageRemove(tempBlob.getFileName());
         } else {
@@ -161,61 +166,59 @@ public class Repository {
 
     public static void rm(String fileName) {
         isGITLET_DIR_Exist();
-        isFileExist(fileName);
 
         loadStage();
-        //remove it from addStage if this file has staged in addStage
+        //file staged but no tracked
         if (addStageMap.containsKey(fileName)) {
             addStageMap.stageRemove(fileName);
-            return;
         }
-        /* if this file doesn't in addStage but in the Latest commit that HEAD point to ,
-         * than add it in removeStage and delete it when commit command execute
-         * //TODO:for this circumstance,this file should delete from CWD
-         */
+        //file tracked
         else {
             Commit latestCommit = getTheLatestCommit();
-            if(isFileExistInLatestCommit(fileName, latestCommit)){
-                removeStageMap.stageSave(fileName,latestCommit.getBlobsID().get(fileName));
+            if (isFileExistInLatestCommit(fileName, latestCommit)) {
+                removeStageMap.stageSave(fileName, latestCommit.getBlobsID().get(fileName));
+                //file exist in CWD , delete it
+                if (isFileExistInCWD(fileName)) {
+                    restrictedDelete(join(CWD, fileName));
+                }
+                return;
             }
+            //if this file doesn't staged or tracked by HEAD
+            System.out.println("No reason to remove the file.");
         }
-        //if this file doesn't staged or tracked by HEAD
-        System.out.println("No reason to remove the file.");
+
     }
 
-    //TODO:clone the commit that HEAD point and modify its metadata with message and other info user provide
-    //TODO:modify new commit's refs to blob by Mapping relationship(e.g hello.txt->blob0.getID())
-    //TODO:modify commit's refs in addStage and removeStage
-    //TODO:give parent commit to the new commit and advance HEAD and master to the latest commit
-    public static void commit(String message) throws IOException {
-        isGITLET_DIR_Exist();
+    //将暂存区的信息同步到Commit的blobs
+    private static void stageToCommitBlobsID(Stage addStageMap, Stage removeStageMap, TreeMap<String, String> commitBlobsID) {
+        addStageMap.forEach((fileName, blobID) -> commitBlobsID.put(fileName, blobID));
+        removeStageMap.forEach((fileName, blobID) -> commitBlobsID.remove(fileName));
+    }
 
+    //根据暂存区信息创建一个新的Commit
+    private static Commit createCommitByStage(String message) {
         String parentID = getCurrentBranch();
         Commit cloneLatestCommit = new Commit(message, getTheLatestCommit());
-        TreeMap<String, String> commitBlobsID = cloneLatestCommit.getBlobsID();
+        cloneLatestCommit.setParent(parentID);
+        stageToCommitBlobsID(addStageMap, removeStageMap, cloneLatestCommit.getBlobsID());
+        return cloneLatestCommit;
+    }
+
+    public static void commit(String message) throws IOException {
+        isGITLET_DIR_Exist();
         loadStage();
+        //若暂存区为空，则无需提交
         if (addStageMap.isEmpty() && removeStageMap.isEmpty()) {
             System.out.println("No changes added to the commit.");
             return;
         }
-        addStageMap.forEach((fileName, blobID) -> commitBlobsID.put(fileName, blobID));
-        removeStageMap.forEach((fileName, blobID) -> {
-            commitBlobsID.remove(fileName);
-            //delete rm file from CWD
-            restrictedDelete(join(CWD, fileName));
-            //delete rm file -> blob from blobs
-            restrictedDelete(join(blobs, blobID));
-        });
-        //modify the clone commit
-        cloneLatestCommit.setBlobsID(commitBlobsID);
-        cloneLatestCommit.setParent(parentID);
-        //advance the pointer to new latest commit
-        pointerAdvance(cloneLatestCommit);
-        //clear stage
-        addStageMap.clear();
-        removeStageMap.clear();
-        writeStage();
-        saveToFile(cloneLatestCommit, cloneLatestCommit.getId(), Commits);
+        //创建新的commit并写入到Commits
+        Commit newCommit = createCommitByStage(message);
+        saveToFile(newCommit, newCommit.getId(), Commits);
+        //移动分支到最新Commit
+        pointerAdvance(newCommit);
+        //初始化暂存区
+        initializeStages();
     }
 }
 

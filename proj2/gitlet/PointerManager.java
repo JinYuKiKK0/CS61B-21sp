@@ -26,6 +26,6 @@ public class PointerManager {
      * @return Return the latestCommit that HEAD pointer point to
      */
     public static Commit getTheLatestCommit(){
-        return readObject(join(Commits, PointerManager.getCurrentBranch()), Commit.class);
+        return readObject(join(Commits, getCurrentBranch()), Commit.class);
     }
 }
