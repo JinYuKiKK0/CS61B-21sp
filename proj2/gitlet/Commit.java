@@ -6,6 +6,7 @@ import java.io.Serializable;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import static gitlet.Utils.*;
 
 /**
  * Represents a gitlet commit object.
@@ -68,7 +69,7 @@ public class Commit implements Serializable {
     }
 
     private String generateID() {
-        return Utils.sha1(message, date, parentsID.toString(), blobsID.toString());
+        return sha1(message, date, parentsID.toString(), blobsID.toString());
     }
 
     public Commit getParentCommit() {
@@ -87,10 +88,10 @@ public class Commit implements Serializable {
         return dateFormat.format(date);
     }
     public void printCommit(){
-        System.out.println("===");
-        System.out.println("commit"+" "+id);
+        message("===");
+        message("commit %s",id);
         //TODO:Merge
-        System.out.println("Date:"+" "+date);
-        System.out.println(message);
+        message("Date: %s",date);
+        message(message);
     }
 }

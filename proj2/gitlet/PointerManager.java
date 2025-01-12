@@ -8,6 +8,7 @@ public class PointerManager {
         writeContents(master,initialCommit.getId());
         //Point the HEAD pointer to master
         writeContents(HEAD,initialCommit.getId());
+        writeContents(BRANCH,"master");
     }
     public static void pointerAdvance(Commit nextCommit){
         writeContents(master,nextCommit.getId());

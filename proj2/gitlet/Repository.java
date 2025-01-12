@@ -261,7 +261,49 @@ public class Repository {
             System.out.println("Found no commit with that message.");
             return;
         }
-        CommitsId.forEach(commitId -> System.out.println(commitId));
+        CommitsId.forEach(System.out::println);
+    }
+
+    private static void Branches(){
+        message("=== Branches ===");
+        List<String> branchNames = plainFilenamesIn(branches);
+        for (String branchName : branchNames) {
+            if(readContentsAsString(BRANCH).equals(branchName)){
+                message("*%s",branchName);
+                continue;
+            }
+            message(branchName);
+        }
+    }
+    private static void StagedFiles(){
+        loadStage();
+        message("=== Staged Files ===");
+        addStageMap.keySet().forEach(Utils::message);
+        writeStage();
+    }
+    private static void RemovedFile(){
+        loadStage();
+        message("=== Removed Files ===");
+        removeStageMap.keySet().forEach(Utils::message);
+    }
+    private static void ModificationsNotStaged(){
+        message("=== Modifications Not Staged For Commit ===");
+    }
+    private static void UntrackedFiles(){
+        message("=== Untracked Files ===");
+    }
+    public static void status(){
+        isGITLET_DIR_Exist();
+        Branches();
+        System.out.println();
+        StagedFiles();
+        System.out.println();
+        RemovedFile();
+        System.out.println();
+        ModificationsNotStaged();
+        System.out.println();
+        UntrackedFiles();
+        System.out.println();
     }
 }
 

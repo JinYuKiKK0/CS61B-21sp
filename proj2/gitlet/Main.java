@@ -54,6 +54,9 @@ public class Main {
                 case "find":
                     Repository.find(args[1]);
                     break;
+                case "status":
+                    Repository.status();
+                    break;
             }
         } catch (IOException e) {
             System.out.println("An error occurred while processing the command: " + e.getMessage());
