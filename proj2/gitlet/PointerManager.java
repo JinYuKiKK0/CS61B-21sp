@@ -28,4 +28,7 @@ public class PointerManager {
     public static Commit getTheLatestCommit(){
         return readObject(join(Commits, getCurrentBranch()), Commit.class);
     }
+    public static Commit getCommitById(String commitId){
+        return readObject(join(Commits , commitId), Commit.class);
+    }
 }

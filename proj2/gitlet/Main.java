@@ -45,6 +45,15 @@ public class Main {
                 case "rm":
                     Repository.rm(args[1]);
                     break;
+                case "log":
+                    Repository.log();
+                    break;
+                case  "global-log":
+                    Repository.global_log();
+                    break;
+                case "find":
+                    Repository.find(args[1]);
+                    break;
             }
         } catch (IOException e) {
             System.out.println("An error occurred while processing the command: " + e.getMessage());

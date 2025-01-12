@@ -71,12 +71,26 @@ public class Commit implements Serializable {
         return Utils.sha1(message, date, parentsID.toString(), blobsID.toString());
     }
 
-    public String getParentCommit() {
-        return parentsID.toString();
+    public Commit getParentCommit() {
+        if(parentsID.isEmpty()){
+            return null;
+        }
+        String parentId = parentsID.get(0);
+        return PointerManager.getCommitById(parentId);
     }
 
+    public String getMessage(){
+        return message;
+    }
     private static String dateToTimeStamp(Date date) {
         DateFormat dateFormat = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.US);
         return dateFormat.format(date);
+    }
+    public void printCommit(){
+        System.out.println("===");
+        System.out.println("commit"+" "+id);
+        //TODO:Merge
+        System.out.println("Date:"+" "+date);
+        System.out.println(message);
     }
 }

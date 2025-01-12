@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
+import java.util.function.Consumer;
 
 import static gitlet.PointerManager.*;
 import static gitlet.Utils.*;
@@ -133,7 +134,7 @@ public class Repository {
         isGITLET_DIR_Exist();
         //if file does not exist
         if (!isFileExistInCWD(fileName)) {
-            System.out.println("File does no exist");
+            System.out.println("File does not exist");
             return;
         }
         loadStage();
@@ -219,6 +220,48 @@ public class Repository {
         pointerAdvance(newCommit);
         //初始化暂存区
         initializeStages();
+    }
+
+    //获取HEAD处Commit，调用printCommit()
+    //获取父提交，调用printCommit()
+    //base situation:该Commit的parentID 为empty
+    private static void traversalCommitTree(Commit commit) {
+        commit.printCommit();
+        Commit parentCommit = commit.getParentCommit();
+        if(parentCommit!=null){
+            traversalCommitTree(parentCommit);
+        }
+    }
+
+    public static void log() {
+        isGITLET_DIR_Exist();
+        traversalCommitTree(getTheLatestCommit());
+    }
+
+    public static void global_log() {
+        isGITLET_DIR_Exist();
+        List<String> commitFileNames = plainFilenamesIn(Commits);
+        commitFileNames.forEach(CommitId -> getCommitById(CommitId).printCommit());
+    }
+
+    private static ArrayList<String> findCommitsIdByMessage(String message) {
+        ArrayList<String> commitsId = new ArrayList<>();
+        List<String> commitFileNames = plainFilenamesIn(Commits);
+        for (String CommitId : commitFileNames) {
+            if (getCommitById(CommitId).getMessage().equals(message)) {
+                commitsId.add(CommitId);
+            }
+        }
+        return commitsId;
+    }
+    public static void find(String message) {
+        isGITLET_DIR_Exist();
+        ArrayList<String> CommitsId = findCommitsIdByMessage(message);
+        if(CommitsId.isEmpty()){
+            System.out.println("Found no commit with that message.");
+            return;
+        }
+        CommitsId.forEach(commitId -> System.out.println(commitId));
     }
 }
 
