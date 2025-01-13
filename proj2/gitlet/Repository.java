@@ -6,6 +6,7 @@ import java.io.Serializable;
 import java.util.*;
 import java.util.function.Consumer;
 
+import static gitlet.Commit.*;
 import static gitlet.PointerManager.*;
 import static gitlet.Utils.*;
 
@@ -228,7 +229,7 @@ public class Repository {
     private static void traversalCommitTree(Commit commit) {
         commit.printCommit();
         Commit parentCommit = commit.getParentCommit();
-        if(parentCommit!=null){
+        if (parentCommit != null) {
             traversalCommitTree(parentCommit);
         }
     }
@@ -254,45 +255,51 @@ public class Repository {
         }
         return commitsId;
     }
+
     public static void find(String message) {
         isGITLET_DIR_Exist();
         ArrayList<String> CommitsId = findCommitsIdByMessage(message);
-        if(CommitsId.isEmpty()){
+        if (CommitsId.isEmpty()) {
             System.out.println("Found no commit with that message.");
             return;
         }
         CommitsId.forEach(System.out::println);
     }
 
-    private static void Branches(){
+    private static void Branches() {
         message("=== Branches ===");
         List<String> branchNames = plainFilenamesIn(branches);
         for (String branchName : branchNames) {
-            if(readContentsAsString(BRANCH).equals(branchName)){
-                message("*%s",branchName);
+            if (readContentsAsString(BRANCH).equals(branchName)) {
+                message("*%s", branchName);
                 continue;
             }
             message(branchName);
         }
     }
-    private static void StagedFiles(){
+
+    private static void StagedFiles() {
         loadStage();
         message("=== Staged Files ===");
         addStageMap.keySet().forEach(Utils::message);
         writeStage();
     }
-    private static void RemovedFile(){
+
+    private static void RemovedFile() {
         loadStage();
         message("=== Removed Files ===");
         removeStageMap.keySet().forEach(Utils::message);
     }
-    private static void ModificationsNotStaged(){
+
+    private static void ModificationsNotStaged() {
         message("=== Modifications Not Staged For Commit ===");
     }
-    private static void UntrackedFiles(){
+
+    private static void UntrackedFiles() {
         message("=== Untracked Files ===");
     }
-    public static void status(){
+
+    public static void status() {
         isGITLET_DIR_Exist();
         Branches();
         System.out.println();
@@ -304,6 +311,77 @@ public class Repository {
         System.out.println();
         UntrackedFiles();
         System.out.println();
+    }
+    /**
+     * 将blobId对应的blob的内容拷贝到fileName所在文件
+     * 从blobs中读取该blob，获得blob对象
+     * 从blob中获取字节流，然后写入到fileName对应文件
+     * @param blobId  拷贝内容所在的blob
+     * @param fileName  拷贝到该文件
+     */
+    private static void copyBlobToFile(String blobId, String fileName) {
+        Blob blob = new Blob(readContents(join(blobs, blobId)), blobId);
+        writeContents(join(CWD, fileName), blob.getBytes());
+    }
+
+    /** 在指定的Commit中找到文件名为fileName的文件对应的blob
+     * @param commitId  指定的commitId
+     * @param fileName
+     * @return  找到，返回blobId，没找到，返回null
+     */
+    private static String getBlobIdByCommitIdAndFileName(String commitId,String fileName) {
+        Commit commit = getCommitById(commitId);
+        return commit.getFileBlobId(fileName);
+    }
+
+    /**将HEAD提交中的同名文件复制到CWD，若已存在则覆盖
+     * 读取HEAD获取当前Commit的id，根据id获得Commit
+     * 从Commit中获取blobs，从blobs中查找名为fileName的文件
+     * 若查找到，获取该键对应的blobId，读取与blobs同名的blob文件，
+     * 读取blob对象，并将blob的字节数组写入到CWD中文件
+     * 若未查找到，打印：File does not exist in that commit.
+     * @param fileName 复制的文件名
+     */
+    private static void  checkoutFileFromHead(String fileName){
+        String HEADcommitId = getCurrentBranch();
+        String blobId = getBlobIdByCommitIdAndFileName(HEADcommitId, fileName);
+        if(blobId!=null){
+            copyBlobToFile(blobId,fileName);
+        }else {
+            throw new IllegalArgumentException("File does not exist in that commit.");
+        }
+
+    }
+    /**将commitId对应的Commit中的同名文件复制到CWD，若已存在则覆盖
+     *
+     * @param commitId
+     * @param fileName
+     */
+    private static void checkoutFileFromCommit(String commitId,String fileName){
+        String blobId = getBlobIdByCommitIdAndFileName(commitId, fileName);
+        if(blobId!=null){
+            copyBlobToFile(blobId,fileName);
+        }else {
+            throw new IllegalArgumentException("File does not exist in that commit.");
+        }
+    }
+    private static void checkoutBranch(String branchName){
+
+    }
+    public static void checkout(String args[]) {
+        if (args.length == 3 && args[0].equals("--")) {
+        // 格式: gitlet checkout -- [file name]
+        checkoutFileFromHead(args[2]);
+    } else if (args.length == 4 && args[2].equals("--")) {
+        // 格式: gitlet checkout [commit id] -- [file name]
+        checkoutFileFromCommit(args[1], args[3]);
+    } else if (args.length == 2) {
+        // 格式: gitlet checkout [branch name]
+        checkoutBranch(args[1]);
+    } else {
+        // 无效命令格式
+        throw new IllegalArgumentException("Incorrect operands.");
+    }
     }
 }
 

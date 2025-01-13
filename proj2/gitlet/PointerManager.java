@@ -1,4 +1,7 @@
 package gitlet;
+import java.io.File;
+import java.util.List;
+
 import static gitlet.Utils.*;
 import static gitlet.Repository.*;
 
@@ -10,26 +13,29 @@ public class PointerManager {
         writeContents(HEAD,initialCommit.getId());
         writeContents(BRANCH,"master");
     }
+    // any pointer
     public static void pointerAdvance(Commit nextCommit){
-        writeContents(master,nextCommit.getId());
+        String curBranchName = getCurrentBranchName();
+        File curBranchFile = findBranchFile(curBranchName);
+        writeContents(curBranchFile,nextCommit.getId());
         writeContents(HEAD,nextCommit.getId());
     }
     /**
      *
      * @return Returns the hash value of the commit object pointed to by the HEAD pointer
      */
+    private static File findBranchFile(String branchName){
+        return join(branches,branchName);
+    }
     public static String getCurrentBranch(){
         return readContentsAsString(HEAD);
     }
-
+    public static String getCurrentBranchName(){return readContentsAsString(BRANCH);}
     /**
      *
      * @return Return the latestCommit that HEAD pointer point to
      */
     public static Commit getTheLatestCommit(){
         return readObject(join(Commits, getCurrentBranch()), Commit.class);
-    }
-    public static Commit getCommitById(String commitId){
-        return readObject(join(Commits , commitId), Commit.class);
     }
 }

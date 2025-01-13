@@ -6,6 +6,8 @@ import java.io.Serializable;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+
+import static gitlet.Repository.Commits;
 import static gitlet.Utils.*;
 
 /**
@@ -77,7 +79,7 @@ public class Commit implements Serializable {
             return null;
         }
         String parentId = parentsID.get(0);
-        return PointerManager.getCommitById(parentId);
+        return getCommitById(parentId);
     }
 
     public String getMessage(){
@@ -93,5 +95,18 @@ public class Commit implements Serializable {
         //TODO:Merge
         message("Date: %s",date);
         message(message);
+    }
+
+    public String getFileBlobId(String fileName){
+        Set<Map.Entry<String, String>> fileName2blobId = blobsID.entrySet();
+        for (Map.Entry<String, String> fileNameBlobIdEntry : fileName2blobId) {
+            if(fileNameBlobIdEntry.getKey().equals(fileName)){
+                return fileNameBlobIdEntry.getValue();
+            }
+        }
+        return null;
+    }
+    public static Commit getCommitById(String commitId){
+        return readObject(join(Commits , commitId), Commit.class);
     }
 }
