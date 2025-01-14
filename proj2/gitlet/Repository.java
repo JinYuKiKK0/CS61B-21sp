@@ -312,76 +312,135 @@ public class Repository {
         UntrackedFiles();
         System.out.println();
     }
+
     /**
      * 将blobId对应的blob的内容拷贝到fileName所在文件
      * 从blobs中读取该blob，获得blob对象
-     * 从blob中获取字节流，然后写入到fileName对应文件
-     * @param blobId  拷贝内容所在的blob
-     * @param fileName  拷贝到该文件
+     * 从blob中获取字节数组，然后写入到fileName对应文件
+     *
+     * @param blobId   拷贝内容所在的blob
+     * @param fileName 拷贝到该文件
      */
     private static void copyBlobToFile(String blobId, String fileName) {
         Blob blob = new Blob(readContents(join(blobs, blobId)), blobId);
         writeContents(join(CWD, fileName), blob.getBytes());
     }
 
-    /** 在指定的Commit中找到文件名为fileName的文件对应的blob
-     * @param commitId  指定的commitId
+    /**
+     * 在指定的Commit中找到文件名为fileName的文件对应的blob
+     *
+     * @param commitId 指定的commitId
      * @param fileName
-     * @return  找到，返回blobId，没找到，返回null
+     * @return 找到，返回blobId，没找到，返回null
      */
-    private static String getBlobIdByCommitIdAndFileName(String commitId,String fileName) {
+    private static String getBlobIdByCommitIdAndFileName(String commitId, String fileName) {
         Commit commit = getCommitById(commitId);
         return commit.getFileBlobId(fileName);
     }
 
-    /**将HEAD提交中的同名文件复制到CWD，若已存在则覆盖
+    /**
+     * 将HEAD提交中的同名文件复制到CWD，若已存在则覆盖
      * 读取HEAD获取当前Commit的id，根据id获得Commit
      * 从Commit中获取blobs，从blobs中查找名为fileName的文件
      * 若查找到，获取该键对应的blobId，读取与blobs同名的blob文件，
      * 读取blob对象，并将blob的字节数组写入到CWD中文件
      * 若未查找到，打印：File does not exist in that commit.
+     *
      * @param fileName 复制的文件名
      */
-    private static void  checkoutFileFromHead(String fileName){
+    private static void checkoutFileFromHead(String fileName) {
         String HEADcommitId = getCurrentBranch();
         String blobId = getBlobIdByCommitIdAndFileName(HEADcommitId, fileName);
-        if(blobId!=null){
-            copyBlobToFile(blobId,fileName);
-        }else {
+        if (blobId != null) {
+            copyBlobToFile(blobId, fileName);
+        } else {
             throw new IllegalArgumentException("File does not exist in that commit.");
         }
-
     }
-    /**将commitId对应的Commit中的同名文件复制到CWD，若已存在则覆盖
+
+    /**
+     * 将commitId对应的Commit中的同名文件复制到CWD，若已存在则覆盖
      *
      * @param commitId
      * @param fileName
      */
-    private static void checkoutFileFromCommit(String commitId,String fileName){
+    private static void checkoutFileFromCommit(String commitId, String fileName) {
         String blobId = getBlobIdByCommitIdAndFileName(commitId, fileName);
-        if(blobId!=null){
-            copyBlobToFile(blobId,fileName);
-        }else {
+        if (blobId != null) {
+            copyBlobToFile(blobId, fileName);
+        } else {
             throw new IllegalArgumentException("File does not exist in that commit.");
         }
     }
-    private static void checkoutBranch(String branchName){
 
+    /**
+     * 返回给定分支跟踪的每个文件的文件名以及对应的blobId
+     * @param branchName 给定分支
+     * @return TreeMap<fileName,blobId>
+     */
+    private static TreeMap<String,String> filesTrackedByBranch(String branchName) {
+        Commit branchCommit = getBranchCommit(branchName);
+        return branchCommit.getBlobsID();
     }
-    public static void checkout(String args[]) {
+
+    /**
+     * 检查该分支是否存在，该分支是否与当前分支相同
+     * 获取checked branch跟踪的所有文件名（String）
+     * 检查CWD中是否存在与checked branch跟踪的同名文件，
+     * 若存在，打印：There is an untracked file in the way; delete it, or add and commit it first.退出
+     * checked branch该部分所有文件恢复到CWD，若文件已存在，覆盖它
+     * 获取当前Commit跟踪的所有文件名（String），从中获取仅被当前Commit跟踪的文件，从CWD中删除
+     * 将给定分支视为当前HEAD分支
+     * 清空暂存区
+     *
+     * @param branchName
+     */
+    private static void checkoutBranch(String branchName) {
+        if (!plainFilenamesIn(branches).contains(branchName)) {
+            System.out.println("No such branch exists.");
+            return;
+        }
+        if (readContentsAsString(BRANCH).equals(branchName)) {
+            System.out.println("No need to checkout the current branch.");
+            return;
+        }
+        TreeMap<String, String> checkedBranchFiles = filesTrackedByBranch(branchName);
+        List<String> fileNames = plainFilenamesIn(CWD);
+        for (String fileName : fileNames) {
+            if(checkedBranchFiles.keySet().contains(fileName)){
+                System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                System.exit(0);
+            }
+        }
+        checkedBranchFiles.forEach((filename,blobId) -> copyBlobToFile(blobId,filename));
+        TreeMap<String, String> curCommitFiles = filesTrackedByBranch(getCurrentBranchName());
+        Set<String> curCommitFileName = curCommitFiles.keySet();
+        curCommitFileName.removeIf(filename -> checkedBranchFiles.keySet().contains(filename));
+        curCommitFileName.forEach(filename ->restrictedDelete(filename));
+        setBranch(branchName);
+        initializeStages();
+    }
+    /**
+     * 根据给出的branchName从branches文件夹中找到对应文件，并读取其中CommitId
+     * 根据CommitId获取Commit，并获取Commit中的blob，将blobs中的所有文件还原到CWD
+     * 将HEAD更改为当前CommitId，BRANCH更改为branchName
+     *
+     * @param args
+     */
+    public static void checkout(String[] args) {
         if (args.length == 3 && args[0].equals("--")) {
-        // 格式: gitlet checkout -- [file name]
-        checkoutFileFromHead(args[2]);
-    } else if (args.length == 4 && args[2].equals("--")) {
-        // 格式: gitlet checkout [commit id] -- [file name]
-        checkoutFileFromCommit(args[1], args[3]);
-    } else if (args.length == 2) {
-        // 格式: gitlet checkout [branch name]
-        checkoutBranch(args[1]);
-    } else {
-        // 无效命令格式
-        throw new IllegalArgumentException("Incorrect operands.");
-    }
+            // 格式: gitlet checkout -- [file name]
+            checkoutFileFromHead(args[2]);
+        } else if (args.length == 4 && args[2].equals("--")) {
+            // 格式: gitlet checkout [commit id] -- [file name]
+            checkoutFileFromCommit(args[1], args[3]);
+        } else if (args.length == 2) {
+            // 格式: gitlet checkout [branch name]
+            checkoutBranch(args[1]);
+        } else {
+            // 无效命令格式
+            throw new IllegalArgumentException("Incorrect operands.");
+        }
     }
 }
 

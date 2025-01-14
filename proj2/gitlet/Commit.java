@@ -97,6 +97,9 @@ public class Commit implements Serializable {
         message(message);
     }
 
+    /**
+     * 获取给定文件名的blobId
+     */
     public String getFileBlobId(String fileName){
         Set<Map.Entry<String, String>> fileName2blobId = blobsID.entrySet();
         for (Map.Entry<String, String> fileNameBlobIdEntry : fileName2blobId) {
@@ -107,6 +110,9 @@ public class Commit implements Serializable {
         return null;
     }
     public static Commit getCommitById(String commitId){
+        if(!plainFilenamesIn(Commits).contains(commitId)){
+            throw new IllegalArgumentException("No commit with that id exists.");
+        }
         return readObject(join(Commits , commitId), Commit.class);
     }
 }
