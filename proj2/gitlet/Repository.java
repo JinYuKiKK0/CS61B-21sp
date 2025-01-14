@@ -191,13 +191,13 @@ public class Repository {
 
     }
 
-    //将暂存区的信息同步到Commit的blobs
+    //Synchronizing staged area information to Commit blobs
     private static void stageToCommitBlobsID(Stage addStageMap, Stage removeStageMap, TreeMap<String, String> commitBlobsID) {
         addStageMap.forEach((fileName, blobID) -> commitBlobsID.put(fileName, blobID));
         removeStageMap.forEach((fileName, blobID) -> commitBlobsID.remove(fileName));
     }
 
-    //根据暂存区信息创建一个新的Commit
+    //Create a new commit based on the staging area information
     private static Commit createCommitByStage(String message) {
         String parentID = getCurrentBranch();
         Commit cloneLatestCommit = new Commit(message, getTheLatestCommit());
@@ -223,9 +223,9 @@ public class Repository {
         initializeStages();
     }
 
-    //获取HEAD处Commit，调用printCommit()
-    //获取父提交，调用printCommit()
-    //base situation:该Commit的parentID 为empty
+    //Get the HEAD commit, call printCommit()
+    //Get the parent commit, call printCommit()
+    //Base situation: The commit's parentID is empty
     private static void traversalCommitTree(Commit commit) {
         commit.printCommit();
         Commit parentCommit = commit.getParentCommit();
@@ -314,12 +314,12 @@ public class Repository {
     }
 
     /**
-     * 将blobId对应的blob的内容拷贝到fileName所在文件
-     * 从blobs中读取该blob，获得blob对象
-     * 从blob中获取字节数组，然后写入到fileName对应文件
+     * Copy the contents of the blob corresponding to blobId to the file located at fileName
+     * Read the blob from the blobs, obtaining the blob object
+     * Get the byte array from the blob and write it to the file corresponding to fileName
      *
-     * @param blobId   拷贝内容所在的blob
-     * @param fileName 拷贝到该文件
+     * @param blobId   Copy the content of the blob
+     * @param fileName Copy to this file
      */
     private static void copyBlobToFile(String blobId, String fileName) {
         Blob blob = new Blob(readContents(join(blobs, blobId)), blobId);
@@ -327,11 +327,11 @@ public class Repository {
     }
 
     /**
-     * 在指定的Commit中找到文件名为fileName的文件对应的blob
+     * Find the blob corresponding to the file named fileName in the specified commit
      *
-     * @param commitId 指定的commitId
+     * @param commitId The specified commitId
      * @param fileName
-     * @return 找到，返回blobId，没找到，返回null
+     * @return Found, return blobId; not found, return null
      */
     private static String getBlobIdByCommitIdAndFileName(String commitId, String fileName) {
         Commit commit = getCommitById(commitId);
@@ -339,14 +339,14 @@ public class Repository {
     }
 
     /**
-     * 将HEAD提交中的同名文件复制到CWD，若已存在则覆盖
-     * 读取HEAD获取当前Commit的id，根据id获得Commit
-     * 从Commit中获取blobs，从blobs中查找名为fileName的文件
-     * 若查找到，获取该键对应的blobId，读取与blobs同名的blob文件，
-     * 读取blob对象，并将blob的字节数组写入到CWD中文件
-     * 若未查找到，打印：File does not exist in that commit.
+     * Copy the file with the same name from the HEAD commit to the CWD, overwriting if it exists
+     * Read the HEAD to get the current commit ID, then get the commit based on the ID
+     * Get blobs from a commit, then find a file named fileName within those blobs
+     * If found, retrieve the blobId corresponding to the key, read the blob file with the same name as the blobs
+     * Read the blob object and write the blob's byte array to a file in the current working directory
+     * If not found, print: File does not exist in that commit.
      *
-     * @param fileName 复制的文件名
+     * @param fileName The copied file name
      */
     private static void checkoutFileFromHead(String fileName) {
         String HEADcommitId = getCurrentBranch();
@@ -359,7 +359,7 @@ public class Repository {
     }
 
     /**
-     * 将commitId对应的Commit中的同名文件复制到CWD，若已存在则覆盖
+     * Copy the file with the same name as the commit in the commitId to the current working directory (CWD), overwriting if it already exists
      *
      * @param commitId
      * @param fileName
@@ -374,9 +374,9 @@ public class Repository {
     }
 
     /**
-     * 返回给定分支跟踪的每个文件的文件名以及对应的blobId
-     * @param branchName 给定分支
-     * @return TreeMap<fileName,blobId>
+     * File name and corresponding blobId for each file tracked by the given branch
+     * @param branchName The given branch
+     * @return TreeMap<fileName, blobId>
      */
     private static TreeMap<String,String> filesTrackedByBranch(String branchName) {
         Commit branchCommit = getBranchCommit(branchName);
@@ -384,14 +384,14 @@ public class Repository {
     }
 
     /**
-     * 检查该分支是否存在，该分支是否与当前分支相同
-     * 获取checked branch跟踪的所有文件名（String）
-     * 检查CWD中是否存在与checked branch跟踪的同名文件，
-     * 若存在，打印：There is an untracked file in the way; delete it, or add and commit it first.退出
-     * checked branch该部分所有文件恢复到CWD，若文件已存在，覆盖它
-     * 获取当前Commit跟踪的所有文件名（String），从中获取仅被当前Commit跟踪的文件，从CWD中删除
-     * 将给定分支视为当前HEAD分支
-     * 清空暂存区
+     * Check if a branch exists and if it's the same as the current branch
+     * Get all file names (String) tracked by the checked branch
+     * Check if a file with the same name as the checked branch exists in the current working directory
+     * If present, print: There is an untracked file in the way; delete it, or add and commit it first. Exit
+     * The checked-out branch's files are restored to the current working directory (CWD).  If a file already exists, it will be overwritten
+     * Get all file names (String) tracked by the current commit, filter for files tracked only by the current commit, and delete them from the CWD
+     * Treat the given branch as the current HEAD branch
+     * Clear the staging area
      *
      * @param branchName
      */
@@ -421,25 +421,26 @@ public class Repository {
         initializeStages();
     }
     /**
-     * 根据给出的branchName从branches文件夹中找到对应文件，并读取其中CommitId
-     * 根据CommitId获取Commit，并获取Commit中的blob，将blobs中的所有文件还原到CWD
-     * 将HEAD更改为当前CommitId，BRANCH更改为branchName
+     * Find the corresponding file in the branches folder based on the given branchName, and read the CommitId from it
+     * Get the commit by CommitId, and retrieve the blobs from the commit. Restore all files from the blobs to the CWD
+     * Change HEAD to the current CommitId, BRANCH to branchName
      *
      * @param args
      */
-    public static void checkout(String[] args) {
-        if (args.length == 3 && args[0].equals("--")) {
-            // 格式: gitlet checkout -- [file name]
-            checkoutFileFromHead(args[2]);
+    public static void handleCheckout(String[] args) {
+        if (args.length == 3 && args[1].equals("--")) {
+            String fileName = args[2];
+            Repository.checkoutFileFromHead(fileName);
         } else if (args.length == 4 && args[2].equals("--")) {
-            // 格式: gitlet checkout [commit id] -- [file name]
-            checkoutFileFromCommit(args[1], args[3]);
+            String commitId = args[1];
+            String fileName = args[3];
+            Repository.checkoutFileFromCommit(commitId, fileName);
         } else if (args.length == 2) {
-            // 格式: gitlet checkout [branch name]
-            checkoutBranch(args[1]);
+            String branchName = args[1];
+            Repository.checkoutBranch(branchName);
         } else {
-            // 无效命令格式
-            throw new IllegalArgumentException("Incorrect operands.");
+            System.out.println("Invalid checkout command.");
+            System.exit(0);
         }
     }
 }

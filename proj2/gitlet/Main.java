@@ -57,6 +57,8 @@ public class Main {
                 case "status":
                     Repository.status();
                     break;
+                case "checkout":
+                    Repository.handleCheckout(args);
             }
         } catch (IOException e) {
             System.out.println("An error occurred while processing the command: " + e.getMessage());
