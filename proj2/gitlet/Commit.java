@@ -75,44 +75,47 @@ public class Commit implements Serializable {
     }
 
     public Commit getParentCommit() {
-        if(parentsID.isEmpty()){
+        if (parentsID.isEmpty()) {
             return null;
         }
         String parentId = parentsID.get(0);
         return getCommitById(parentId);
     }
 
-    public String getMessage(){
+    public String getMessage() {
         return message;
     }
+
     private static String dateToTimeStamp(Date date) {
         DateFormat dateFormat = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.US);
         return dateFormat.format(date);
     }
-    public void printCommit(){
+
+    public void printCommit() {
         message("===");
-        message("commit %s",id);
+        message("commit %s", id);
         //TODO:Merge
-        message("Date: %s",date);
+        message("Date: %s", date);
         message(message);
     }
 
     /**
      * 获取给定文件名的blobId
      */
-    public String getFileBlobId(String fileName){
+    public String getFileBlobId(String fileName) {
         Set<Map.Entry<String, String>> fileName2blobId = blobsID.entrySet();
         for (Map.Entry<String, String> fileNameBlobIdEntry : fileName2blobId) {
-            if(fileNameBlobIdEntry.getKey().equals(fileName)){
+            if (fileNameBlobIdEntry.getKey().equals(fileName)) {
                 return fileNameBlobIdEntry.getValue();
             }
         }
         return null;
     }
-    public static Commit getCommitById(String commitId){
-        if(!plainFilenamesIn(Commits).contains(commitId)){
+
+    public static Commit getCommitById(String commitId) {
+        if (!plainFilenamesIn(Commits).contains(commitId)) {
             throw new IllegalArgumentException("No commit with that id exists.");
         }
-        return readObject(join(Commits , commitId), Commit.class);
+        return readObject(join(Commits, commitId), Commit.class);
     }
 }

@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
-import java.util.function.Consumer;
 
 import static gitlet.Commit.*;
 import static gitlet.PointerManager.*;
@@ -166,6 +165,14 @@ public class Repository {
         return false;
     }
 
+    /**
+     * 删除的文件有
+     * 1. 既没有暂存也没有被追踪的文件 给出警告，该文件不在gitlet中
+     * 2. 文件已被跟踪但无修改    暂存为删除，从CWD中删除，加入status 命令，文件应显示在 "Removed Files" 部分。
+     * 4. 文件已被跟踪但有修改
+     *
+     * @param fileName
+     */
     public static void rm(String fileName) {
         isGITLET_DIR_Exist();
 
@@ -278,24 +285,24 @@ public class Repository {
         }
     }
 
-    private static void StagedFiles() {
+    private static void stagedFiles() {
         loadStage();
         message("=== Staged Files ===");
         addStageMap.keySet().forEach(Utils::message);
         writeStage();
     }
 
-    private static void RemovedFile() {
+    private static void removedFile() {
         loadStage();
         message("=== Removed Files ===");
         removeStageMap.keySet().forEach(Utils::message);
     }
 
-    private static void ModificationsNotStaged() {
+    private static void modificationsNotStaged() {
         message("=== Modifications Not Staged For Commit ===");
     }
 
-    private static void UntrackedFiles() {
+    private static void untrackedFiles() {
         message("=== Untracked Files ===");
     }
 
@@ -303,13 +310,13 @@ public class Repository {
         isGITLET_DIR_Exist();
         Branches();
         System.out.println();
-        StagedFiles();
+        stagedFiles();
         System.out.println();
-        RemovedFile();
+        removedFile();
         System.out.println();
-        ModificationsNotStaged();
+        modificationsNotStaged();
         System.out.println();
-        UntrackedFiles();
+        untrackedFiles();
         System.out.println();
     }
 
@@ -349,8 +356,8 @@ public class Repository {
      * @param fileName The copied file name
      */
     private static void checkoutFileFromHead(String fileName) {
-        String HEADcommitId = getCurrentBranch();
-        String blobId = getBlobIdByCommitIdAndFileName(HEADcommitId, fileName);
+        String headCommitId = getCurrentBranch();
+        String blobId = getBlobIdByCommitIdAndFileName(headCommitId, fileName);
         if (blobId != null) {
             copyBlobToFile(blobId, fileName);
         } else {
@@ -359,7 +366,8 @@ public class Repository {
     }
 
     /**
-     * Copy the file with the same name as the commit in the commitId to the current working directory (CWD), overwriting if it already exists
+     * Copy the file with the same name as the commit in the commitId to the current working directory (CWD)
+     * overwriting if it already exists
      *
      * @param commitId
      * @param fileName
@@ -375,10 +383,11 @@ public class Repository {
 
     /**
      * File name and corresponding blobId for each file tracked by the given branch
+     *
      * @param branchName The given branch
      * @return TreeMap<fileName, blobId>
      */
-    private static TreeMap<String,String> filesTrackedByBranch(String branchName) {
+    private static TreeMap<String, String> filesTrackedByBranch(String branchName) {
         Commit branchCommit = getBranchCommit(branchName);
         return branchCommit.getBlobsID();
     }
@@ -388,8 +397,10 @@ public class Repository {
      * Get all file names (String) tracked by the checked branch
      * Check if a file with the same name as the checked branch exists in the current working directory
      * If present, print: There is an untracked file in the way; delete it, or add and commit it first. Exit
-     * The checked-out branch's files are restored to the current working directory (CWD).  If a file already exists, it will be overwritten
-     * Get all file names (String) tracked by the current commit, filter for files tracked only by the current commit, and delete them from the CWD
+     * The checked-out branch's files are restored to the current working directory (CWD).
+     * If a file already exists, it will be overwritten
+     * Get all file names (String) tracked by the current commit, filter for files tracked only by the current commit
+     * and delete them from the CWD
      * Treat the given branch as the current HEAD branch
      * Clear the staging area
      *
@@ -407,19 +418,20 @@ public class Repository {
         TreeMap<String, String> checkedBranchFiles = filesTrackedByBranch(branchName);
         List<String> fileNames = plainFilenamesIn(CWD);
         for (String fileName : fileNames) {
-            if(checkedBranchFiles.keySet().contains(fileName)){
+            if (checkedBranchFiles.keySet().contains(fileName)) {
                 System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                 System.exit(0);
             }
         }
-        checkedBranchFiles.forEach((filename,blobId) -> copyBlobToFile(blobId,filename));
+        checkedBranchFiles.forEach((filename, blobId) -> copyBlobToFile(blobId, filename));
         TreeMap<String, String> curCommitFiles = filesTrackedByBranch(getCurrentBranchName());
         Set<String> curCommitFileName = curCommitFiles.keySet();
         curCommitFileName.removeIf(filename -> checkedBranchFiles.keySet().contains(filename));
-        curCommitFileName.forEach(filename ->restrictedDelete(filename));
+        curCommitFileName.forEach(filename -> restrictedDelete(filename));
         setBranch(branchName);
         initializeStages();
     }
+
     /**
      * Find the corresponding file in the branches folder based on the given branchName, and read the CommitId from it
      * Get the commit by CommitId, and retrieve the blobs from the commit. Restore all files from the blobs to the CWD

@@ -13,7 +13,7 @@ public class Main {
      * Usage: java gitlet.Main ARGS, where ARGS contains
      * <COMMAND> <OPERAND1> <OPERAND2> ...
      */
-    public static void main(String[] args)  {
+    public static void main(String[] args) {
         try {
             // TODO: what if args is empty?
             if (args.length == 0) {
@@ -28,7 +28,7 @@ public class Main {
                     break;
                 case "add":
                     // TODO: handle the `add [filename]` command
-                    if(args.length < 2){
+                    if (args.length < 2) {
                         System.out.println("Please specify a file to add.");
                         System.exit(0);
                     }
@@ -36,7 +36,7 @@ public class Main {
                     break;
                 // TODO: FILL THE REST IN
                 case "commit":
-                    if (args.length < 2) {
+                    if (args.length < 2 || args[1].trim().isEmpty()) {
                         System.out.println("Please enter a commit message.");
                         System.exit(0);
                     }
@@ -48,7 +48,7 @@ public class Main {
                 case "log":
                     Repository.log();
                     break;
-                case  "global-log":
+                case "global-log":
                     Repository.global_log();
                     break;
                 case "find":

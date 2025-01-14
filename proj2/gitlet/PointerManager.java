@@ -38,8 +38,8 @@ public class PointerManager {
     }
 
     public static void setBranch(String branchName) {
-        writeContents(BRANCH,branchName);
-        writeContents(HEAD,readContentsAsString(join(branches,branchName)));
+        writeContents(BRANCH, branchName);
+        writeContents(HEAD, readContentsAsString(join(branches, branchName)));
     }
 
     public static String getBranchCommitId(String branchName) {
