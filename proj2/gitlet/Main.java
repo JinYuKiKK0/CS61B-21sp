@@ -5,7 +5,7 @@ import java.io.IOException;
 /**
  * Driver class for Gitlet, a subset of the Git version-control system.
  *
- * @author TODO
+ * @author JinYu
  */
 public class Main {
 
@@ -15,7 +15,6 @@ public class Main {
      */
     public static void main(String[] args) {
         try {
-            // TODO: what if args is empty?
             if (args.length == 0) {
                 System.out.println("Please enter a command.");
                 System.exit(0);
@@ -23,18 +22,15 @@ public class Main {
             String firstArg = args[0];
             switch (firstArg) {
                 case "init":
-                    // TODO: handle the `init` command
                     Repository.init();
                     break;
                 case "add":
-                    // TODO: handle the `add [filename]` command
                     if (args.length < 2) {
                         System.out.println("Please specify a file to add.");
                         System.exit(0);
                     }
                     Repository.add(args[1]);
                     break;
-                // TODO: FILL THE REST IN
                 case "commit":
                     if (args.length < 2 || args[1].trim().isEmpty()) {
                         System.out.println("Please enter a commit message.");
@@ -49,7 +45,7 @@ public class Main {
                     Repository.log();
                     break;
                 case "global-log":
-                    Repository.global_log();
+                    Repository.globalLog();
                     break;
                 case "find":
                     Repository.find(args[1]);
@@ -59,6 +55,8 @@ public class Main {
                     break;
                 case "checkout":
                     Repository.handleCheckout(args);
+                default:
+                    System.out.println("Invalid command.");
             }
         } catch (IOException e) {
             System.out.println("An error occurred while processing the command: " + e.getMessage());

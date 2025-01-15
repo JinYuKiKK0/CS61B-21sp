@@ -9,18 +9,15 @@ import static gitlet.Commit.*;
 import static gitlet.PointerManager.*;
 import static gitlet.Utils.*;
 
-// TODO: any imports you need here
 
 /**
  * Represents a gitlet repository.
- *  TODO: It's a good idea to give a description here of what else this Class
- *  does at a high level.
+ * does at a high level.
  *
- * @author TODO
+ * @author JinYu
  */
 public class Repository {
     /**
-     * TODO: add instance variables here.
      * <p>
      * List all instance variables of the Repository class here with a useful
      * comment above them describing what that variable represents and how that
@@ -36,39 +33,38 @@ public class Repository {
      * The .gitlet directory.
      */
     public static final File GITLET_DIR = join(CWD, ".gitlet");
-    public static final File objects = join(GITLET_DIR, "objects");
-    public static final File Commits = join(objects, "Commits");
-    public static final File blobs = join(objects, "blobs");
-    public static final File branches = join(GITLET_DIR, "branches");
-    public static final File master = join(branches, "master");
+    public static final File OBJECTS = join(GITLET_DIR, "objects");
+    public static final File COMMITS = join(OBJECTS, "Commits");
+    public static final File BLOBS = join(OBJECTS, "blobs");
+    public static final File BRANCHES = join(GITLET_DIR, "branches");
+    public static final File MASTER = join(BRANCHES, "master");
     public static final File HEAD = join(GITLET_DIR, "HEAD");
     public static final File BRANCH = join(GITLET_DIR, "BRANCH");
-    public static final File Stages = join(GITLET_DIR, "Stages");
-    public static final File addStage = join(Stages, "addStage");
-    public static final File removeStage = join(Stages, "removeStage");
+    public static final File STAGES = join(GITLET_DIR, "Stages");
+    public static final File ADD_STAGE = join(STAGES, "addStage");
+    public static final File REMOVE_STAGE = join(STAGES, "removeStage");
 
-    /* TODO: fill in the rest of this class. */
 
     private static void createDirectoriesAndFiles() throws IOException {
         //create a .gitlet directory as Gitlet Repository
         GITLET_DIR.mkdir();
-            /*create a Staging Area in .gitlet ; Staging Area will keep track of
+        /*create a Staging Area in .gitlet ; Staging Area will keep track of
             all the files that are staged for addition or removal
-             */
-        objects.mkdir();
-        Commits.mkdir();
-        blobs.mkdir();
-        branches.mkdir();
-        master.createNewFile();
+        */
+        OBJECTS.mkdir();
+        COMMITS.mkdir();
+        BLOBS.mkdir();
+        BRANCHES.mkdir();
+        MASTER.createNewFile();
         HEAD.createNewFile();
         BRANCH.createNewFile();
-        Stages.mkdir();
-        addStage.createNewFile();
-        removeStage.createNewFile();
+        STAGES.mkdir();
+        ADD_STAGE.createNewFile();
+        REMOVE_STAGE.createNewFile();
 
     }
 
-    private static void isGITLET_DIR_Exist() {
+    private static void isGiltetDirExist() {
         if (!GITLET_DIR.exists()) {
             System.out.println("There is no .gitlet in your CWD");
             System.exit(0);
@@ -77,12 +73,13 @@ public class Repository {
 
     private static void initializeStages() {
         //create addStage and removeStage
-        addStageMap = new Stage(addStage);
-        removeStageMap = new Stage(removeStage);
+        addStageMap = new Stage(ADD_STAGE);
+        removeStageMap = new Stage(REMOVE_STAGE);
         writeStage();
     }
 
-    private static <T extends Serializable> void saveToFile(T object, String fileName, File parentDIR) throws IOException {
+    private static <T extends Serializable> void saveToFile(T object, String fileName, File parentDIR)
+            throws IOException {
         File saveFile = join(parentDIR, fileName);
         saveFile.createNewFile();
         writeObject(saveFile, object);
@@ -90,14 +87,14 @@ public class Repository {
 
     //read Stage from file
     private static void loadStage() {
-        addStageMap = readObject(addStage, Stage.class);
-        removeStageMap = readObject(removeStage, Stage.class);
+        addStageMap = readObject(ADD_STAGE, Stage.class);
+        removeStageMap = readObject(REMOVE_STAGE, Stage.class);
     }
 
     //write Stage into  file
     private static void writeStage() {
-        writeObject(addStage, addStageMap);
-        writeObject(removeStage, removeStageMap);
+        writeObject(ADD_STAGE, addStageMap);
+        writeObject(REMOVE_STAGE, removeStageMap);
     }
 
     public static void init() throws IOException {
@@ -109,7 +106,7 @@ public class Repository {
         initializeStages();
         //create initial commit and save it in objects/Commits
         Commit initialCommit = new Commit();
-        saveToFile(initialCommit, initialCommit.getId(), Commits);
+        saveToFile(initialCommit, initialCommit.getId(), COMMITS);
         //create HEAD and master pointer point to initial commit
         initializePointers(initialCommit);
     }
@@ -131,7 +128,7 @@ public class Repository {
     }
 
     public static void add(String fileName) throws IOException {
-        isGITLET_DIR_Exist();
+        isGiltetDirExist();
         //if file does not exist
         if (!isFileExistInCWD(fileName)) {
             System.out.println("File does not exist");
@@ -143,13 +140,12 @@ public class Repository {
         if (isBlobIdenticalToCommit(tempBlob)) {
             System.out.println("This file is up to date");
             addStageMap.stageRestrictRemove(tempBlob.getFileName());
-        }
-        //if this file exist in removeStage , remove it from removeStage
-        else if (removeStageMap.containsKey(tempBlob.getFileName())) {
+        } else if (removeStageMap.containsKey(tempBlob.getFileName())) {
+            //if this file exist in removeStage , remove it from removeStage
             removeStageMap.stageRemove(tempBlob.getFileName());
         } else {
             //add the file to the addStage
-            saveToFile(tempBlob, tempBlob.getId(), blobs);
+            saveToFile(tempBlob, tempBlob.getId(), BLOBS);
             addStageMap.stageSave(tempBlob.getFileName(), tempBlob.getId());
         }
         writeStage();
@@ -170,18 +166,17 @@ public class Repository {
      * 1. files neither staged nor tracked by HEAD commit , print err
      * 2. files tracked    staged for removal , delete from CWD , display section "Removed Files" in status command
      * 3. files staged  remove it from addStage
+     *
      * @param fileName
      */
     public static void rm(String fileName) {
-        isGITLET_DIR_Exist();
+        isGiltetDirExist();
 
         loadStage();
         //file staged but no tracked
         if (addStageMap.containsKey(fileName)) {
             addStageMap.stageRemove(fileName);
-        }
-        //file tracked
-        else {
+        } else {    //file tracked
             Commit latestCommit = getTheLatestCommit();
             if (isFileExistInLatestCommit(fileName, latestCommit)) {
                 removeStageMap.stageSave(fileName, latestCommit.getBlobsID().get(fileName));
@@ -198,9 +193,10 @@ public class Repository {
     }
 
     //Synchronizing staged area information to Commit blobs
-    private static void stageToCommitBlobsID(Stage addStageMap, Stage removeStageMap, TreeMap<String, String> commitBlobsID) {
-        addStageMap.forEach((fileName, blobID) -> commitBlobsID.put(fileName, blobID));
-        removeStageMap.forEach((fileName, blobID) -> commitBlobsID.remove(fileName));
+    private static void stageToCommitBlobsID(Stage add_Stage_Map, Stage remove_Stage_Map,
+                                             TreeMap<String, String> commitBlobsID) {
+        add_Stage_Map.forEach((fileName, blobID) -> commitBlobsID.put(fileName, blobID));
+        remove_Stage_Map.forEach((fileName, blobID) -> commitBlobsID.remove(fileName));
     }
 
     //Create a new commit based on the staging area information
@@ -213,7 +209,7 @@ public class Repository {
     }
 
     public static void commit(String message) throws IOException {
-        isGITLET_DIR_Exist();
+        isGiltetDirExist();
         loadStage();
         //若暂存区为空，则无需提交
         if (addStageMap.isEmpty() && removeStageMap.isEmpty()) {
@@ -222,7 +218,7 @@ public class Repository {
         }
         //创建新的commit并写入到Commits
         Commit newCommit = createCommitByStage(message);
-        saveToFile(newCommit, newCommit.getId(), Commits);
+        saveToFile(newCommit, newCommit.getId(), COMMITS);
         //移动分支到最新Commit
         pointerAdvance(newCommit);
         //初始化暂存区
@@ -241,40 +237,40 @@ public class Repository {
     }
 
     public static void log() {
-        isGITLET_DIR_Exist();
+        isGiltetDirExist();
         traversalCommitTree(getTheLatestCommit());
     }
 
-    public static void global_log() {
-        isGITLET_DIR_Exist();
-        List<String> commitFileNames = plainFilenamesIn(Commits);
+    public static void globalLog() {
+        isGiltetDirExist();
+        List<String> commitFileNames = plainFilenamesIn(COMMITS);
         commitFileNames.forEach(CommitId -> getCommitById(CommitId).printCommit());
     }
 
     private static ArrayList<String> findCommitsIdByMessage(String message) {
         ArrayList<String> commitsId = new ArrayList<>();
-        List<String> commitFileNames = plainFilenamesIn(Commits);
-        for (String CommitId : commitFileNames) {
-            if (getCommitById(CommitId).getMessage().equals(message)) {
-                commitsId.add(CommitId);
+        List<String> commitFileNames = plainFilenamesIn(COMMITS);
+        for (String commitId : commitFileNames) {
+            if (getCommitById(commitId).getMessage().equals(message)) {
+                commitsId.add(commitId);
             }
         }
         return commitsId;
     }
 
     public static void find(String message) {
-        isGITLET_DIR_Exist();
-        ArrayList<String> CommitsId = findCommitsIdByMessage(message);
-        if (CommitsId.isEmpty()) {
+        isGiltetDirExist();
+        ArrayList<String> commitsId = findCommitsIdByMessage(message);
+        if (commitsId.isEmpty()) {
             System.out.println("Found no commit with that message.");
             return;
         }
-        CommitsId.forEach(System.out::println);
+        commitsId.forEach(System.out::println);
     }
 
-    private static void Branches() {
+    private static void branches() {
         message("=== Branches ===");
-        List<String> branchNames = plainFilenamesIn(branches);
+        List<String> branchNames = plainFilenamesIn(BRANCHES);
         for (String branchName : branchNames) {
             if (readContentsAsString(BRANCH).equals(branchName)) {
                 message("*%s", branchName);
@@ -306,8 +302,8 @@ public class Repository {
     }
 
     public static void status() {
-        isGITLET_DIR_Exist();
-        Branches();
+        isGiltetDirExist();
+        branches();
         System.out.println();
         stagedFiles();
         System.out.println();
@@ -328,7 +324,7 @@ public class Repository {
      * @param fileName Copy to this file
      */
     private static void copyBlobToFile(String blobId, String fileName) {
-        Blob blob = new Blob(readContents(join(blobs, blobId)), blobId);
+        Blob blob = new Blob(readContents(join(BLOBS, blobId)), blobId);
         writeContents(join(CWD, fileName), blob.getBytes());
     }
 
@@ -406,7 +402,7 @@ public class Repository {
      * @param branchName
      */
     private static void checkoutBranch(String branchName) {
-        if (!plainFilenamesIn(branches).contains(branchName)) {
+        if (!plainFilenamesIn(BRANCHES).contains(branchName)) {
             System.out.println("No such branch exists.");
             return;
         }

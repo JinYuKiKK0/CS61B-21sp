@@ -1,25 +1,23 @@
 package gitlet;
 
-// TODO: any imports you need here
-
 import java.io.Serializable;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import static gitlet.Repository.Commits;
+import static gitlet.Repository.COMMITS;
 import static gitlet.Utils.*;
 
 /**
  * Represents a gitlet commit object.
- *  TODO: It's a good idea to give a description here of what else this Class
+ *
  *  does at a high level.
  *
- * @author TODO
+ * @author JinYu
  */
 public class Commit implements Serializable {
     /**
-     * TODO: add instance variables here.
+     *
      * <p>
      * List all instance variables of the Commit class here with a useful
      * comment above them describing what that variable represents and how that
@@ -64,7 +62,7 @@ public class Commit implements Serializable {
         blobsID = file2blob;
     }
 
-    //TODO: before BRANCH finished
+    //FIXME:before branch
     public void setParent(String parentID) {
         this.parentsID.clear();
         this.parentsID.add(parentID);
@@ -113,9 +111,9 @@ public class Commit implements Serializable {
     }
 
     public static Commit getCommitById(String commitId) {
-        if (!plainFilenamesIn(Commits).contains(commitId)) {
+        if (!plainFilenamesIn(COMMITS).contains(commitId)) {
             throw new IllegalArgumentException("No commit with that id exists.");
         }
-        return readObject(join(Commits, commitId), Commit.class);
+        return readObject(join(COMMITS, commitId), Commit.class);
     }
 }
