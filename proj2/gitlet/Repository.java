@@ -127,11 +127,12 @@ public class Repository {
         }
         return true;
     }
-    private static boolean isFileExistInGitlet(String fileName){
-        if(isFileExistInCWD(fileName)){
+
+    private static boolean isFileExistInGitlet(String fileName) {
+        if (isFileExistInCWD(fileName)) {
             return true;
-        }else {
-            if(isFileExistInLatestCommit(fileName,getTheLatestCommit())){
+        } else {
+            if (isFileExistInLatestCommit(fileName, getTheLatestCommit())) {
                 return true;
             }
         }
@@ -398,6 +399,10 @@ public class Repository {
         return branchCommit.getBlobsID();
     }
 
+    private static TreeMap<String, String> filesTrackedByCommit(String commitId) {
+        return getCommitById(commitId).getBlobsID();
+    }
+
     /**
      * Check if a branch exists and if it's the same as the current branch
      * Get all file names (String) tracked by the checked branch
@@ -421,7 +426,23 @@ public class Repository {
             System.out.println("No need to checkout the current branch.");
             return;
         }
-        TreeMap<String, String> checkedBranchFiles = filesTrackedByBranch(branchName);
+        //checkout the files of the given commitId
+        // delete the files unique to the original branch check out files that
+        checkoutFilesOperation(getBranchCommitId(branchName));
+        //set given branch to the current branch
+        setBranch(branchName);
+        initializeStages();
+    }
+
+    /**
+     * checkout the files of the given commitId
+     *  delete the files unique to the original branch check out files that
+     * @param commitId
+     */
+    private static void checkoutFilesOperation(String commitId) {
+        //Retrieve all files -> blobs for the commits of the given branch
+        TreeMap<String, String> checkedBranchFiles = filesTrackedByCommit(commitId);
+        //if there is a file with same name exist in CWD , exit and print err
         List<String> fileNames = plainFilenamesIn(CWD);
         for (String fileName : fileNames) {
             if (checkedBranchFiles.keySet().contains(fileName)) {
@@ -429,13 +450,13 @@ public class Repository {
                 System.exit(0);
             }
         }
+        //restore each file to CWD
         checkedBranchFiles.forEach((filename, blobId) -> copyBlobToFile(blobId, filename));
+        //Remove the unique files from the original branch from the current working directory
         TreeMap<String, String> curCommitFiles = filesTrackedByBranch(getCurrentBranchName());
         Set<String> curCommitFileName = curCommitFiles.keySet();
         curCommitFileName.removeIf(filename -> checkedBranchFiles.keySet().contains(filename));
         curCommitFileName.forEach(filename -> restrictedDelete(filename));
-        setBranch(branchName);
-        initializeStages();
     }
 
     /**
@@ -460,6 +481,37 @@ public class Repository {
             System.out.println("Invalid checkout command.");
             System.exit(0);
         }
+    }
+
+    public static void branch(String branchName) throws IOException {
+        if (plainFilenamesIn(BRANCHES).contains(branchName)) {
+            System.out.println("A branch with that name already exists.");
+        } else {
+            join(BRANCHES, branchName).createNewFile();
+            writeContents(join(BRANCHES, branchName), getCurrentBranch());
+        }
+    }
+
+    public static void removeBranch(String branchName) {
+        if (getCurrentBranchName().equals(branchName)) {
+            System.out.println("Cannot remove the current branch.");
+        } else if (!plainFilenamesIn(BRANCHES).contains(branchName)) {
+            System.out.println("A branch with that name does not exist.");
+        } else {
+            restrictedDelete(join(BRANCHES, branchName));
+        }
+    }
+
+    /**
+     * rollback the version to the specified commitId
+     */
+    public static void reset(String commitId) {
+        if (!plainFilenamesIn(COMMITS).contains(commitId)) {
+            throw new IllegalArgumentException("No commit with that id exists.");
+        }
+        writeContents(HEAD, commitId);
+        checkoutFilesOperation(commitId);
+        initializeStages();
     }
 }
 
