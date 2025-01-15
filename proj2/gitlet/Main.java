@@ -55,8 +55,9 @@ public class Main {
                     break;
                 case "checkout":
                     Repository.handleCheckout(args);
+                    break;
                 default:
-                    System.out.println("Invalid command.");
+                    System.out.println("No command with that name exists.");
             }
         } catch (IOException e) {
             System.out.println("An error occurred while processing the command: " + e.getMessage());

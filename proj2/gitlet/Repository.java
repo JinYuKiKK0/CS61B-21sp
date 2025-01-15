@@ -78,7 +78,8 @@ public class Repository {
         writeStage();
     }
 
-    private static <T extends Serializable> void saveToFile(T object, String fileName, File parentDIR)
+    private static <T extends Serializable> void saveToFile
+            (T object, String fileName, File parentDIR)
             throws IOException {
         File saveFile = join(parentDIR, fileName);
         saveFile.createNewFile();
@@ -126,11 +127,21 @@ public class Repository {
         }
         return true;
     }
+    private static boolean isFileExistInGitlet(String fileName){
+        if(isFileExistInCWD(fileName)){
+            return true;
+        }else {
+            if(isFileExistInLatestCommit(fileName,getTheLatestCommit())){
+                return true;
+            }
+        }
+        return false;
+    }
 
     public static void add(String fileName) throws IOException {
         isGiltetDirExist();
         //if file does not exist
-        if (!isFileExistInCWD(fileName)) {
+        if (!isFileExistInGitlet(fileName)) {
             System.out.println("File does not exist");
             return;
         }

@@ -95,6 +95,7 @@ public class Commit implements Serializable {
         //TODO:Merge
         message("Date: %s", date);
         message(message);
+        message("");
     }
 
     /**
