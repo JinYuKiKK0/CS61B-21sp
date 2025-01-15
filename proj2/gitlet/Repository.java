@@ -166,11 +166,10 @@ public class Repository {
     }
 
     /**
-     * 删除的文件有
-     * 1. 既没有暂存也没有被追踪的文件 给出警告，该文件不在gitlet中
-     * 2. 文件已被跟踪但无修改    暂存为删除，从CWD中删除，加入status 命令，文件应显示在 "Removed Files" 部分。
-     * 4. 文件已被跟踪但有修改
-     *
+     * rm FILES
+     * 1. files neither staged nor tracked by HEAD commit , print err
+     * 2. files tracked    staged for removal , delete from CWD , display section "Removed Files" in status command
+     * 3. files staged  remove it from addStage
      * @param fileName
      */
     public static void rm(String fileName) {
