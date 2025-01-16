@@ -523,5 +523,9 @@ public class Repository {
         checkoutFilesOperation(commitId);
         initializeStages();
     }
+
+    public static void merge(String branchName){
+        
+    }
 }
 

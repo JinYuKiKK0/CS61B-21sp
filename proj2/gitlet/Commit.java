@@ -40,7 +40,7 @@ public class Commit implements Serializable {
 
     public Commit(String commitMessage, Commit parentCommit) {
         message = commitMessage;
-        parentsID = parentCommit.getParentsID();
+        parentsID = new ArrayList<>();
         blobsID = parentCommit.getBlobsID();
         date = dateToTimeStamp(new Date());
         id = generateID();
@@ -62,9 +62,8 @@ public class Commit implements Serializable {
         blobsID = file2blob;
     }
 
-    //FIXME:before branch
+    //FIXME:before merge
     public void setParent(String parentID) {
-        this.parentsID.clear();
         this.parentsID.add(parentID);
     }
 
