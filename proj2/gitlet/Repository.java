@@ -139,39 +139,44 @@ public class Repository {
         return false;
     }
 
-
     public static void add(String fileName) throws IOException {
-    isGiltetDirExist();
-    if (!isFileExistInGitlet(fileName)) {
-        System.out.println("File does not exist");
-        return;
-    }
-    loadStage();
-    //file not tracked , add to addStage
-    if (!isFileTrackedInCommit(fileName, getTheLatestCommit())) {
-        Blob tempBlob = new Blob(readContents(join(CWD, fileName)), fileName);
-        addStageMap.stageSave(fileName, tempBlob.getId());
-        writeStage();
-        return;
-    }
-    //file tracked
-    if (!isFileExistInCWD(fileName)) {
-        // file not exist in CWD, remove from removeStage
-        removeStageMap.stageRemove(fileName);
-    } else {
-        //  file exist in CWD
-        Blob tempBlob = new Blob(readContents(join(CWD, fileName)), fileName);
-        if (isBlobIdenticalToCommit(tempBlob)) {
-            // curFile == commit
-            System.out.println("This file is up to date");
-            addStageMap.stageRestrictRemove(tempBlob.getFileName());
-        } else {
-            // file has some modification ,stage it
-            addStageMap.stageSave(fileName, tempBlob.getId());
+        isGiltetDirExist();
+        if (!isFileExistInGitlet(fileName)) {
+            System.out.println("File does not exist");
+            return;
         }
+        loadStage();
+        if (removeStageMap.containsKey(fileName)) {
+            removeStageMap.stageRemove(fileName);
+            writeStage();
+            return;
+        }
+
+        //file not tracked , add to addStage
+        if (!isFileTrackedInCommit(fileName, getTheLatestCommit())) {
+            Blob tempBlob = new Blob(readContents(join(CWD, fileName)), fileName);
+            addStageMap.stageSave(fileName, tempBlob.getId());
+            writeStage();
+            return;
+        }
+        //file tracked
+        if (!isFileExistInCWD(fileName)) {
+            // file not exist in CWD, remove from removeStage
+            removeStageMap.stageRemove(fileName);
+        } else {
+            //  file exist in CWD
+            Blob tempBlob = new Blob(readContents(join(CWD, fileName)), fileName);
+            if (isBlobIdenticalToCommit(tempBlob)) {
+                // curFile == commit
+                System.out.println("This file is up to date");
+                addStageMap.stageRestrictRemove(tempBlob.getFileName());
+            } else {
+                // file has some modification ,stage it
+                addStageMap.stageSave(fileName, tempBlob.getId());
+            }
+        }
+        writeStage();
     }
-    writeStage();
-}
 
     private static boolean isFileTrackedInCommit(String fileName, Commit specifiedCommit) {
         Set<Map.Entry<String, String>> entries = specifiedCommit.getBlobsID().entrySet();
@@ -192,27 +197,22 @@ public class Repository {
      * @param fileName
      */
     public static void rm(String fileName) {
-        isGiltetDirExist();
-
-        loadStage();
-        //file staged but no tracked
-        if (addStageMap.containsKey(fileName)) {
-            addStageMap.stageRemove(fileName);
-        } else {    //file tracked
-            Commit latestCommit = getTheLatestCommit();
-            if (isFileTrackedInCommit(fileName, latestCommit)) {
-                removeStageMap.stageSave(fileName, latestCommit.getBlobsID().get(fileName));
-                //file exist in CWD , delete it
-                if (isFileExistInCWD(fileName)) {
-                    restrictedDelete(join(CWD, fileName));
-                }
-                return;
-            }
-            //if this file doesn't staged or tracked by HEAD
-            System.out.println("No reason to remove the file.");
+    isGiltetDirExist();
+    loadStage();
+    if (addStageMap.containsKey(fileName)) {
+        addStageMap.stageRemove(fileName); 
+    } else if (isFileTrackedInCommit(fileName, getTheLatestCommit())) {
+        // remove from commit and delete from CWD
+        removeStageMap.stageSave(fileName, getTheLatestCommit().getBlobsID().get(fileName));
+        if (isFileExistInCWD(fileName)) {
+            restrictedDelete(join(CWD, fileName));
         }
-
+    } else {
+        System.out.println("No reason to remove the file.");
     }
+    writeStage();
+}
+
 
     //Synchronizing staged area information to Commit blobs
     private static void stageToCommitBlobsID(Stage add_Stage_Map, Stage remove_Stage_Map,
