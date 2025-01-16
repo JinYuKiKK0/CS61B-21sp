@@ -139,14 +139,7 @@ public class Repository {
         return false;
     }
 
-    /**
-     * 对当前提交跟踪的文件执行rm命令后，再执行add命令，预期结果：将该文件从removeStage中移除
-     * 但实际输出：This file is up to date
-     * 实际调试，文件执行rm命令后，再执行add，报错 must be a normal file ，blob创建中readContents失败。原因：该文件已从CWD中删除，无法读取
-     *
-     * @param fileName
-     * @throws IOException
-     */
+
     public static void add(String fileName) throws IOException {
     isGiltetDirExist();
     if (!isFileExistInGitlet(fileName)) {
@@ -240,17 +233,16 @@ public class Repository {
     public static void commit(String message) throws IOException {
         isGiltetDirExist();
         loadStage();
-        //若暂存区为空，则无需提交
+        //if staging area is empty , no need to commit
         if (addStageMap.isEmpty() && removeStageMap.isEmpty()) {
             System.out.println("No changes added to the commit.");
             return;
         }
-        //创建新的commit并写入到Commits
+        // create new commit and write to Commits
         Commit newCommit = createCommitByStage(message);
         saveToFile(newCommit, newCommit.getId(), COMMITS);
-        //移动分支到最新Commit
+        //Commit advance Branch to the latest Commit
         pointerAdvance(newCommit);
-        //初始化暂存区
         initializeStages();
     }
 
