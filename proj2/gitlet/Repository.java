@@ -153,7 +153,7 @@ public class Repository {
         //file not tracked , add to addStage
         if (!isFileTrackedInCommit(fileName, getTheLatestCommit())) {
             Blob tempBlob = new Blob(readContents(join(CWD, fileName)), fileName);
-            saveToFile(tempBlob,tempBlob.getId(),BLOBS);
+            saveToFile(tempBlob, tempBlob.getId(), BLOBS);
             addStageMap.stageSave(fileName, tempBlob.getId());
             return;
         }
@@ -170,7 +170,7 @@ public class Repository {
             } else {
                 // file has some modification ,stage it
                 addStageMap.stageSave(fileName, tempBlob.getId());
-                saveToFile(tempBlob,tempBlob.getId(),BLOBS);
+                saveToFile(tempBlob, tempBlob.getId(), BLOBS);
             }
         }
         writeStage();
@@ -343,7 +343,7 @@ public class Repository {
      * @param fileName Copy to this file
      */
     private static void copyBlobToFile(String blobId, String fileName) {
-        Blob blob = readObject(join(BLOBS,blobId), Blob.class);
+        Blob blob = readObject(join(BLOBS, blobId), Blob.class);
         writeContents(join(CWD, fileName), blob.getBytes());
     }
 
@@ -366,6 +366,7 @@ public class Repository {
      * If found, retrieve the blobId corresponding to the key, read the blob file with the same name as the blobs
      * Read the blob object and write the blob's byte array to a file in the current working directory
      * If not found, print: File does not exist in that commit.
+     *
      * @param fileName The copied file name
      */
     private static void checkoutFileFromHead(String fileName) {
@@ -375,7 +376,7 @@ public class Repository {
             //FIXME ：file text contents doesn't restore but -> blob
             copyBlobToFile(blobId, fileName);
         } else {
-            throw new IllegalArgumentException("File does not exist in that commit.");
+            System.out.println("File does not exist in that commit.");
         }
     }
 
@@ -391,7 +392,7 @@ public class Repository {
         if (blobId != null) {
             copyBlobToFile(blobId, fileName);
         } else {
-            throw new IllegalArgumentException("File does not exist in that commit.");
+            System.out.println("File does not exist in that commit.");
         }
     }
 
@@ -440,9 +441,11 @@ public class Repository {
         setBranch(branchName);
         initializeStages();
     }
+
     /**
      * checkout the files of the given commitId
      * delete the files unique to the original branch check out files that
+     *
      * @param commitId
      */
     private static void checkoutFilesOperation(String commitId) {
@@ -514,7 +517,7 @@ public class Repository {
      */
     public static void reset(String commitId) {
         if (!plainFilenamesIn(COMMITS).contains(commitId)) {
-            throw new IllegalArgumentException("No commit with that id exists.");
+            System.out.println("No commit with that id exists.");
         }
         writeContents(HEAD, commitId);
         checkoutFilesOperation(commitId);
