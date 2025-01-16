@@ -132,13 +132,21 @@ public class Repository {
         if (isFileExistInCWD(fileName)) {
             return true;
         } else {
-            if (isFileExistInLatestCommit(fileName, getTheLatestCommit())) {
+            if (isFileTrackedInCommit(fileName, getTheLatestCommit())) {
                 return true;
             }
         }
         return false;
     }
 
+    /**
+     * 对当前提交跟踪的文件执行rm命令后，再执行add命令，预期结果：将该文件从removeStage中移除
+     * 但实际输出：This file is up to date
+     * 实际调试，文件执行rm命令后，再执行add，报错 must be a normal file ，blob创建中readContents失败。原因：该文件已从CWD中删除，无法读取
+     *
+     * @param fileName
+     * @throws IOException
+     */
     public static void add(String fileName) throws IOException {
         isGiltetDirExist();
         //if file does not exist
@@ -147,24 +155,28 @@ public class Repository {
             return;
         }
         loadStage();
-        Blob tempBlob = new Blob(readContents(join(CWD, fileName)), fileName);
-        //curFile version == curCommit version , don't add
-        if (isBlobIdenticalToCommit(tempBlob)) {
-            System.out.println("This file is up to date");
-            addStageMap.stageRestrictRemove(tempBlob.getFileName());
-        } else if (removeStageMap.containsKey(tempBlob.getFileName())) {
-            //if this file exist in removeStage , remove it from removeStage
-            removeStageMap.stageRemove(tempBlob.getFileName());
+        //file tracked
+        if (isFileTrackedInCommit(fileName, getTheLatestCommit())) {
+            if (!isFileExistInCWD(fileName)) {
+                removeStageMap.stageRemove(fileName);
+            } else {
+                Blob tempBlob = new Blob(readContents(join(CWD, fileName)), fileName);
+                if (isBlobIdenticalToCommit(tempBlob)) {
+                    System.out.println("This file is up to date");
+                    addStageMap.stageRestrictRemove(tempBlob.getFileName());
+                } else {
+                    addStageMap.stageSave(fileName, tempBlob.getId());
+                }
+            }
         } else {
-            //add the file to the addStage
-            saveToFile(tempBlob, tempBlob.getId(), BLOBS);
-            addStageMap.stageSave(tempBlob.getFileName(), tempBlob.getId());
+            Blob tempBlob = new Blob(readContents(join(CWD, fileName)), fileName);
+            addStageMap.stageSave(fileName, tempBlob.getId());
         }
         writeStage();
     }
 
-    private static boolean isFileExistInLatestCommit(String fileName, Commit latestCommit) {
-        Set<Map.Entry<String, String>> entries = latestCommit.getBlobsID().entrySet();
+    private static boolean isFileTrackedInCommit(String fileName, Commit specifiedCommit) {
+        Set<Map.Entry<String, String>> entries = specifiedCommit.getBlobsID().entrySet();
         for (Map.Entry<String, String> entry : entries) {
             if (entry.getKey().equals(fileName)) {
                 return true;
@@ -190,7 +202,7 @@ public class Repository {
             addStageMap.stageRemove(fileName);
         } else {    //file tracked
             Commit latestCommit = getTheLatestCommit();
-            if (isFileExistInLatestCommit(fileName, latestCommit)) {
+            if (isFileTrackedInCommit(fileName, latestCommit)) {
                 removeStageMap.stageSave(fileName, latestCommit.getBlobsID().get(fileName));
                 //file exist in CWD , delete it
                 if (isFileExistInCWD(fileName)) {
@@ -436,7 +448,8 @@ public class Repository {
 
     /**
      * checkout the files of the given commitId
-     *  delete the files unique to the original branch check out files that
+     * delete the files unique to the original branch check out files that
+     *
      * @param commitId
      */
     private static void checkoutFilesOperation(String commitId) {
