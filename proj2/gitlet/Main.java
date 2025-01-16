@@ -26,7 +26,7 @@ public class Main {
                     break;
                 case "add":
                     if (args.length < 2) {
-                        System.out.println("Please specify a file to add.");
+                        System.out.println("Incorrect operands.");
                         System.exit(0);
                     }
                     Repository.add(args[1]);

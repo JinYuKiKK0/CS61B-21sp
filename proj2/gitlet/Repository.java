@@ -66,7 +66,7 @@ public class Repository {
 
     private static void isGiltetDirExist() {
         if (!GITLET_DIR.exists()) {
-            System.out.println("There is no .gitlet in your CWD");
+            System.out.println("Not in an initialized Gitlet directory.");
             System.exit(0);
         }
     }
@@ -178,9 +178,9 @@ public class Repository {
     }
 
     private static boolean isFileTrackedInCommit(String fileName, Commit specifiedCommit) {
-        Set<Map.Entry<String, String>> entries = specifiedCommit.getBlobsID().entrySet();
-        for (Map.Entry<String, String> entry : entries) {
-            if (entry.getKey().equals(fileName)) {
+        Set<String> keySet = specifiedCommit.getBlobsID().keySet();
+        for (String key : keySet) {
+            if (key.equals(fileName)) {
                 return true;
             }
         }
@@ -441,11 +441,9 @@ public class Repository {
         setBranch(branchName);
         initializeStages();
     }
-
     /**
      * checkout the files of the given commitId
      * delete the files unique to the original branch check out files that
-     *
      * @param commitId
      */
     private static void checkoutFilesOperation(String commitId) {
@@ -454,7 +452,7 @@ public class Repository {
         //if there is a file with same name exist in CWD , exit and print err
         List<String> fileNames = plainFilenamesIn(CWD);
         for (String fileName : fileNames) {
-            if (checkedBranchFiles.keySet().contains(fileName)) {
+            if (!checkedBranchFiles.keySet().contains(fileName)) {
                 System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                 System.exit(0);
             }
