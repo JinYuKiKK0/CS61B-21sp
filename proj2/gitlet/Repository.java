@@ -148,15 +148,13 @@ public class Repository {
         loadStage();
         if (removeStageMap.containsKey(fileName)) {
             removeStageMap.stageRemove(fileName);
-            writeStage();
             return;
         }
-
         //file not tracked , add to addStage
         if (!isFileTrackedInCommit(fileName, getTheLatestCommit())) {
             Blob tempBlob = new Blob(readContents(join(CWD, fileName)), fileName);
+            saveToFile(tempBlob,tempBlob.getId(),BLOBS);
             addStageMap.stageSave(fileName, tempBlob.getId());
-            writeStage();
             return;
         }
         //file tracked
@@ -172,6 +170,7 @@ public class Repository {
             } else {
                 // file has some modification ,stage it
                 addStageMap.stageSave(fileName, tempBlob.getId());
+                saveToFile(tempBlob,tempBlob.getId(),BLOBS);
             }
         }
         writeStage();
@@ -344,7 +343,7 @@ public class Repository {
      * @param fileName Copy to this file
      */
     private static void copyBlobToFile(String blobId, String fileName) {
-        Blob blob = new Blob(readContents(join(BLOBS, blobId)), blobId);
+        Blob blob = readObject(join(BLOBS,blobId), Blob.class);
         writeContents(join(CWD, fileName), blob.getBytes());
     }
 
@@ -367,13 +366,13 @@ public class Repository {
      * If found, retrieve the blobId corresponding to the key, read the blob file with the same name as the blobs
      * Read the blob object and write the blob's byte array to a file in the current working directory
      * If not found, print: File does not exist in that commit.
-     *
      * @param fileName The copied file name
      */
     private static void checkoutFileFromHead(String fileName) {
         String headCommitId = getCurrentBranch();
         String blobId = getBlobIdByCommitIdAndFileName(headCommitId, fileName);
         if (blobId != null) {
+            //FIXME ：file text contents doesn't restore but -> blob
             copyBlobToFile(blobId, fileName);
         } else {
             throw new IllegalArgumentException("File does not exist in that commit.");
@@ -449,10 +448,11 @@ public class Repository {
     private static void checkoutFilesOperation(String commitId) {
         //Retrieve all files -> blobs for the commits of the given branch
         TreeMap<String, String> checkedBranchFiles = filesTrackedByCommit(commitId);
-        //if there is a file with same name exist in CWD , exit and print err
+        //if there are untracked files in current branch and checkout will overwrite them, exit and print err
+        //FIXME:
         List<String> fileNames = plainFilenamesIn(CWD);
         for (String fileName : fileNames) {
-            if (!checkedBranchFiles.keySet().contains(fileName)) {
+            if (checkedBranchFiles.keySet().contains(fileName)) {
                 System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                 System.exit(0);
             }
