@@ -148,32 +148,37 @@ public class Repository {
      * @throws IOException
      */
     public static void add(String fileName) throws IOException {
-        isGiltetDirExist();
-        //if file does not exist
-        if (!isFileExistInGitlet(fileName)) {
-            System.out.println("File does not exist");
-            return;
-        }
-        loadStage();
-        //file tracked
-        if (isFileTrackedInCommit(fileName, getTheLatestCommit())) {
-            if (!isFileExistInCWD(fileName)) {
-                removeStageMap.stageRemove(fileName);
-            } else {
-                Blob tempBlob = new Blob(readContents(join(CWD, fileName)), fileName);
-                if (isBlobIdenticalToCommit(tempBlob)) {
-                    System.out.println("This file is up to date");
-                    addStageMap.stageRestrictRemove(tempBlob.getFileName());
-                } else {
-                    addStageMap.stageSave(fileName, tempBlob.getId());
-                }
-            }
+    isGiltetDirExist();
+    if (!isFileExistInGitlet(fileName)) {
+        System.out.println("File does not exist");
+        return;
+    }
+    loadStage();
+    //file not tracked , add to addStage
+    if (!isFileTrackedInCommit(fileName, getTheLatestCommit())) {
+        Blob tempBlob = new Blob(readContents(join(CWD, fileName)), fileName);
+        addStageMap.stageSave(fileName, tempBlob.getId());
+        writeStage();
+        return;
+    }
+    //file tracked
+    if (!isFileExistInCWD(fileName)) {
+        // file not exist in CWD, remove from removeStage
+        removeStageMap.stageRemove(fileName);
+    } else {
+        //  file exist in CWD
+        Blob tempBlob = new Blob(readContents(join(CWD, fileName)), fileName);
+        if (isBlobIdenticalToCommit(tempBlob)) {
+            // curFile == commit
+            System.out.println("This file is up to date");
+            addStageMap.stageRestrictRemove(tempBlob.getFileName());
         } else {
-            Blob tempBlob = new Blob(readContents(join(CWD, fileName)), fileName);
+            // file has some modification ,stage it
             addStageMap.stageSave(fileName, tempBlob.getId());
         }
-        writeStage();
     }
+    writeStage();
+}
 
     private static boolean isFileTrackedInCommit(String fileName, Commit specifiedCommit) {
         Set<Map.Entry<String, String>> entries = specifiedCommit.getBlobsID().entrySet();
