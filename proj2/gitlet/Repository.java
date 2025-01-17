@@ -445,16 +445,19 @@ public class Repository {
     /**
      * checkout the files of the given commitId
      * delete the files unique to the original branch check out files that
+     *
      * @param commitId
      */
     private static void checkoutFilesOperation(String commitId) {
         //Retrieve all files -> blobs for the commits of the given branch
         TreeMap<String, String> checkedBranchFiles = filesTrackedByCommit(commitId);
         //if there are untracked files in current branch and checkout will overwrite them, exit and print err
-        //FIXME:
         List<String> fileNames = plainFilenamesIn(CWD);
+
         for (String fileName : fileNames) {
-            if (checkedBranchFiles.keySet().contains(fileName)) {
+            boolean isUntracked = !isFileTrackedInCommit(fileName, getTheLatestCommit());
+            boolean willBeOverwritten = isFileTrackedInCommit(fileName, getCommitById(commitId));
+            if (isUntracked && willBeOverwritten) {
                 System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                 System.exit(0);
             }
@@ -523,7 +526,7 @@ public class Repository {
         initializeStages();
     }
 
-    public static void merge(String branchName){
+    public static void merge(String branchName) {
         
     }
 }
