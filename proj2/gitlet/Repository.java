@@ -445,7 +445,6 @@ public class Repository {
     /**
      * checkout the files of the given commitId
      * delete the files unique to the original branch check out files that
-     *
      * @param commitId
      */
     private static void checkoutFilesOperation(String commitId) {

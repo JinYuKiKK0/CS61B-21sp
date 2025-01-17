@@ -112,7 +112,8 @@ public class Commit implements Serializable {
 
     public static Commit getCommitById(String commitId) {
         if (!plainFilenamesIn(COMMITS).contains(commitId)) {
-            throw new IllegalArgumentException("No commit with that id exists.");
+            System.out.println("No commit with that id exists.");
+            System.exit(0);
         }
         return readObject(join(COMMITS, commitId), Commit.class);
     }
