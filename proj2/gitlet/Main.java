@@ -64,6 +64,7 @@ public class Main {
                     break;
                 case "reset":
                     Repository.reset(args[1]);
+                    break;
                 default:
                     System.out.println("No command with that name exists.");
             }

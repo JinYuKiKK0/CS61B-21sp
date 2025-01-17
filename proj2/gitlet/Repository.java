@@ -490,7 +490,7 @@ public class Repository {
             String branchName = args[1];
             Repository.checkoutBranch(branchName);
         } else {
-            System.out.println("Invalid checkout command.");
+            System.out.println("Incorrect operands.");
             System.exit(0);
         }
     }
@@ -527,7 +527,7 @@ public class Repository {
     }
 
     public static void merge(String branchName) {
-        
+
     }
 }
 
