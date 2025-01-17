@@ -510,7 +510,7 @@ public class Repository {
         } else if (!plainFilenamesIn(BRANCHES).contains(branchName)) {
             System.out.println("A branch with that name does not exist.");
         } else {
-            restrictedDelete(".gitlet/branches/"+branchName);
+            restrictedDelete(join(BRANCHES, branchName));
         }
     }
 
@@ -520,7 +520,6 @@ public class Repository {
     public static void reset(String commitId) {
         if (!plainFilenamesIn(COMMITS).contains(commitId)) {
             System.out.println("No commit with that id exists.");
-            System.exit(0);
         }
         writeContents(HEAD, commitId);
         checkoutFilesOperation(commitId);
