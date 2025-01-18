@@ -117,4 +117,13 @@ public class Commit implements Serializable {
         }
         return readObject(join(COMMITS, commitId), Commit.class);
     }
+
+    /**
+     * @param commitA
+     * @param commitB
+     * @return
+     */
+    public static Commit getSplitCommit(Commit commitA,Commit commitB){
+        
+    }
 }

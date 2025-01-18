@@ -442,6 +442,12 @@ public class Repository {
         initializeStages();
     }
 
+    private static boolean filesCheckBeforeCheckOut(String fileName, String commitId) {
+        boolean isUntracked = !isFileTrackedInCommit(fileName, getTheLatestCommit());
+        boolean willBeOverwritten = isFileTrackedInCommit(fileName, getCommitById(commitId));
+        return isUntracked && willBeOverwritten;
+    }
+
     /**
      * checkout the files of the given commitId
      * delete the files unique to the original branch check out files that
@@ -453,11 +459,8 @@ public class Repository {
         TreeMap<String, String> checkedBranchFiles = filesTrackedByCommit(commitId);
         //if there are untracked files in current branch and checkout will overwrite them, exit and print err
         List<String> fileNames = plainFilenamesIn(CWD);
-
         for (String fileName : fileNames) {
-            boolean isUntracked = !isFileTrackedInCommit(fileName, getTheLatestCommit());
-            boolean willBeOverwritten = isFileTrackedInCommit(fileName, getCommitById(commitId));
-            if (isUntracked && willBeOverwritten) {
+            if (filesCheckBeforeCheckOut(fileName, commitId)) {
                 System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                 System.exit(0);
             }
@@ -520,14 +523,115 @@ public class Repository {
     public static void reset(String commitId) {
         if (!plainFilenamesIn(COMMITS).contains(commitId)) {
             System.out.println("No commit with that id exists.");
+            System.exit(0);
         }
         writeContents(HEAD, commitId);
         checkoutFilesOperation(commitId);
         initializeStages();
     }
 
-    public static void merge(String branchName) {
+    private static boolean isStageEmpty() {
+        loadStage();
+        return addStageMap.isEmpty() && removeStageMap.isEmpty();
+    }
 
+    private static void sanityCheckBeforeMerge(String branchName) {
+        if (!isStageEmpty()) {
+            System.out.println("You have uncommitted changes.");
+            System.exit(0);
+        }
+        if (plainFilenamesIn(BRANCHES).contains(branchName)) {
+            System.out.println("A branch with that name already exists.");
+            System.exit(0);
+        }
+        if (getCurrentBranchName().equals(branchName)) {
+            System.out.println("Cannot merge a branch with itself.");
+            System.exit(0);
+        }
+    }
+
+    /**
+     * 对branch A & branch B分别进行BFS遍历，将所有遍历到的commitId以及对应深度(commitId -> depth)放入Map，遍历到init commit结束
+     * 获得Map A & Map B. 对MapA.keyset()进行遍历，若MapB也包含该key，记录MapA此时的key->value 为minKey以及minValue。
+     * 继续遍历，如果MapB包含该key，并且对应MapA的value < minValue，将minKey与minValue更新为该键值对
+     * 遍历结束，minKey对应splitCommit的commitId，minValue对应splitCommit的depth
+     *
+     * @param branchName
+     * @return
+     */
+    private static String findSplitPointId(String branchName) {
+        String headCommitId = getCurrentBranch();
+        String givenBranchCommitId = getBranchCommitId(branchName);
+        HashMap<String, Integer> headCommitTree = new HashMap<>();
+        HashMap<String, Integer> givenBranchCommitTree = new HashMap<>();
+
+        BFS(headCommitId, headCommitTree);
+        BFS(givenBranchCommitId, givenBranchCommitTree);
+
+        String minKey = "";
+        int minValue = Integer.MAX_VALUE;
+        for (String commitId : headCommitTree.keySet()) {
+            if (givenBranchCommitTree.containsKey(commitId) && headCommitTree.get(commitId) < minValue) {
+                minKey = commitId;
+                minValue = givenBranchCommitTree.get(commitId);
+            }
+        }
+        return minKey;
+    }
+
+    private static void BFS(String commitId, HashMap<String, Integer> commitTree) {
+        Queue<String> queue = new LinkedList<>();
+        Set<String> marked = new HashSet<>();
+
+        int depth = 0;
+        queue.offer(commitId);
+        marked.add(commitId);
+        while (!queue.isEmpty()) {
+            int size = queue.size();
+            for (int i = 0; i < size; i++) {
+                String commitid = queue.remove();
+                commitTree.put(commitid, depth);
+                ArrayList<String> parentsID = getCommitById(commitid).getParentsID();
+                if (parentsID.isEmpty()) {
+                    continue;
+                }
+                for (String parentCommitId : parentsID) {
+                    if (!marked.contains(parentCommitId)) {
+                        marked.add(parentCommitId);
+                        queue.offer(parentCommitId);
+                    }
+                }
+            }
+            depth ++;
+        }
+        /**
+         * depth = 1
+         * queue[2]
+         * marked[4,3]
+         */
+    }
+
+    /**
+     * 接收一个分支
+     * 找出给定分支以及当前分支的split point
+     * 根据给定分支、当前分支以及split point的内容差异，决定Merge后的commit应该跟踪哪些文件
+     * 创建新提交，设置提交跟踪的文件，以及两个父提交
+     * 对于合并提交，在commit id下添加一行：Merge: 4975af1 2c1ead1。数字依次由两个父提交ID的前七位组成
+     *
+     * @param branchName
+     */
+    public static void merge(String branchName) {
+        sanityCheckBeforeMerge(branchName);
+        String splitPointId = findSplitPointId(branchName);
+        if(splitPointId.equals(getCurrentBranch())){
+            System.out.println("Current branch fast-forwarded.");
+            System.exit(0);
+        }
+        if(splitPointId.equals(getBranchCommitId(branchName))){
+            System.out.println("Given branch is an ancestor of the current branch.");
+            System.exit(0);
+        }
+        
     }
 }
 
