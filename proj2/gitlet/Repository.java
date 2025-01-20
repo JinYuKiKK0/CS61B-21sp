@@ -442,10 +442,13 @@ public class Repository {
         initializeStages();
     }
 
-    private static boolean filesCheckBeforeCheckOut(String fileName, String commitId) {
+    private static void filesCheckBeforeCheckOut(String fileName, String commitId) {
         boolean isUntracked = !isFileTrackedInCommit(fileName, getTheLatestCommit());
         boolean willBeOverwritten = isFileTrackedInCommit(fileName, getCommitById(commitId));
-        return isUntracked && willBeOverwritten;
+        if (isUntracked && willBeOverwritten) {
+            System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+            System.exit(0);
+        }
     }
 
     /**
@@ -460,10 +463,7 @@ public class Repository {
         //if there are untracked files in current branch and checkout will overwrite them, exit and print err
         List<String> fileNames = plainFilenamesIn(CWD);
         for (String fileName : fileNames) {
-            if (filesCheckBeforeCheckOut(fileName, commitId)) {
-                System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
-                System.exit(0);
-            }
+            filesCheckBeforeCheckOut(fileName, commitId);
         }
         //restore each file to CWD
         checkedBranchFiles.forEach((filename, blobId) -> copyBlobToFile(blobId, filename));
@@ -602,7 +602,7 @@ public class Repository {
                     }
                 }
             }
-            depth ++;
+            depth++;
         }
         /**
          * depth = 1
@@ -611,27 +611,63 @@ public class Repository {
          */
     }
 
+    private static void mergeEasyCase(String branchName) {
+        String splitPointId = findSplitPointId(branchName);
+        if (splitPointId.equals(getCurrentBranch())) {
+            System.out.println("Current branch fast-forwarded.");
+            checkoutBranch(branchName);
+            System.exit(0);
+        }
+        if (splitPointId.equals(getBranchCommitId(branchName))) {
+            System.out.println("Given branch is an ancestor of the current branch.");
+            System.exit(0);
+        }
+    }
+
     /**
      * 接收一个分支
      * 找出给定分支以及当前分支的split point
-     * 根据给定分支、当前分支以及split point的内容差异，决定Merge后的commit应该跟踪哪些文件
-     * 创建新提交，设置提交跟踪的文件，以及两个父提交
+     * 对sp,other以及head中的每个文件进行审查，根据三者之间的文件差异，对工作目录中的文件进行合并修改
+     * 创建合并提交，合并提交保存合并后工作目录的文件快照（包括解决冲突后），并设置两个父提交
      * 对于合并提交，在commit id下添加一行：Merge: 4975af1 2c1ead1。数字依次由两个父提交ID的前七位组成
+     * !!!!!在任何合并操作前执行该检查：如果当前提交中未跟踪的文件将被merge覆写或删除，打印：
+     * There is an untracked file in the way; delete it, or add and commit it first.并退出
      *
      * @param branchName
      */
     public static void merge(String branchName) {
         sanityCheckBeforeMerge(branchName);
+        mergeEasyCase(branchName);
+    }
+
+    private static HashMap<String, String> resultFiles(String branchName) {
         String splitPointId = findSplitPointId(branchName);
-        if(splitPointId.equals(getCurrentBranch())){
-            System.out.println("Current branch fast-forwarded.");
-            System.exit(0);
+        TreeMap<String, String> branchFiles = getBranchCommit(branchName).getBlobsID();
+        TreeMap<String, String> splitFiles = getCommitById(splitPointId).getBlobsID();
+        TreeMap<String, String> headFiles = getTheLatestCommit().getBlobsID();
+        HashMap<String, String> allFiles = new HashMap<>();
+        HashMap<String, String> resultFiles = new HashMap<>();
+        for (String fileName : branchFiles.keySet()) {
+            allFiles.put(fileName, branchFiles.get(fileName));
         }
-        if(splitPointId.equals(getBranchCommitId(branchName))){
-            System.out.println("Given branch is an ancestor of the current branch.");
-            System.exit(0);
+        for (String fileName : splitFiles.keySet()) {
+            allFiles.put(fileName, splitFiles.get(fileName));
         }
-        
+        for (String fileName : headFiles.keySet()) {
+            allFiles.put(fileName, headFiles.get(fileName));
+        }
+        for (String filename : allFiles.keySet()) {
+            if (!branchFiles.containsKey(filename)) {
+                branchFiles.put(filename, "0");
+            }
+            if (!splitFiles.containsKey(filename)) {
+                splitFiles.put(filename, "0");
+            }
+            if (!headFiles.containsKey(filename)) {
+                headFiles.put(filename, "0");
+            }
+        }
+        return resultFiles;
     }
 }
 
