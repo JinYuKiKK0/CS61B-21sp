@@ -640,6 +640,25 @@ public class Repository {
         mergeEasyCase(branchName);
     }
 
+    /**
+     * 遍历split每个文件
+     * 1. 如果head,other都有该文件
+     * other修改了文件
+     * head没有更改文件  更改为other版本并暂存
+     * head更改了，且两者改动不一致（conflict）
+     * 2. 如果head中存在，而other中不存在
+     * head没有更改，删除该文件，标记为untracked
+     * head中修改了，两者修改方式不一致（conflict）
+     * 3. 如果other中存在，而head中不存在
+     * other更改了，改动方式不一致（conflict）
+     * 遍历other每个文件
+     * split中没有该文件
+     * head也没有该文件，暂存当前文件，并checkout至other
+     * head有该文件，且改动方式不一致（conflict）
+     *
+     * @param branchName
+     * @return
+     */
     private static HashMap<String, String> resultFiles(String branchName) {
         String splitPointId = findSplitPointId(branchName);
         TreeMap<String, String> branchFiles = getBranchCommit(branchName).getBlobsID();
@@ -647,27 +666,64 @@ public class Repository {
         TreeMap<String, String> headFiles = getTheLatestCommit().getBlobsID();
         HashMap<String, String> allFiles = new HashMap<>();
         HashMap<String, String> resultFiles = new HashMap<>();
-        for (String fileName : branchFiles.keySet()) {
-            allFiles.put(fileName, branchFiles.get(fileName));
-        }
+        loadStage();
         for (String fileName : splitFiles.keySet()) {
-            allFiles.put(fileName, splitFiles.get(fileName));
+            //both head and other have this file
+            if (headFiles.containsKey(fileName) && branchFiles.containsKey(fileName)) {
+                //other modify this file but head not
+                if (!branchFiles.get(fileName).equals(splitFiles.get(fileName))
+                        && headFiles.get(fileName).equals(splitFiles.get(fileName))) {
+                    addStageMap.stageSave(fileName, headFiles.get(fileName));
+                    checkoutFileFromCommit(getBranchCommitId(branchName), fileName);
+                    resultFiles.put(fileName, branchFiles.get(fileName));
+                }
+                if (!branchFiles.get(fileName).equals(splitFiles.get(fileName))
+                        && !headFiles.get(fileName).equals(splitFiles.get(fileName))
+                        && !headFiles.get(fileName).equals(branchFiles.get(fileName))){
+                    //TODO:conflict
+                }
+            }
+            //head have this file but other not
+            if (headFiles.containsKey(fileName) && !branchFiles.containsKey(fileName)) {
+                //head not modify this file
+                if (headFiles.get(fileName).equals(splitFiles.get(fileName))) {
+                    restrictedDelete(join(CWD, fileName));
+                    if (resultFiles.containsKey(fileName)) {
+                        resultFiles.remove(fileName);
+                    }
+                }
+                //head modify this file
+                if (headFiles.get(fileName).equals(splitFiles.get(fileName))) {
+                    //TODO:conflict
+                }
+            }
+            //file exist in other,but head not
+            if (branchFiles.containsKey(fileName) && !headFiles.containsKey(fileName)) {
+                //other modify
+                if (!branchFiles.get(fileName).equals(splitFiles.get(fileName))) {
+                    //TODO:conflict
+                }
+            }
         }
-        for (String fileName : headFiles.keySet()) {
-            allFiles.put(fileName, headFiles.get(fileName));
-        }
-        for (String filename : allFiles.keySet()) {
-            if (!branchFiles.containsKey(filename)) {
-                branchFiles.put(filename, "0");
+        for (String fileName : branchFiles.keySet()) {
+            //neither split nor head have this file
+            if (!splitFiles.containsKey(fileName)
+                    && !headFiles.containsKey(fileName)) {
+                addStageMap.stageSave(fileName, branchFiles.get(fileName));
+                checkoutFileFromCommit(getBranchCommitId(branchName), fileName);
+                resultFiles.put(fileName, branchFiles.get(fileName));
             }
-            if (!splitFiles.containsKey(filename)) {
-                splitFiles.put(filename, "0");
+            //split not but head have this file
+            if(!splitFiles.containsKey(fileName)
+                    && !headFiles.get(fileName).equals(branchFiles.get(fileName))){
+                //TODO:conflict
             }
-            if (!headFiles.containsKey(filename)) {
-                headFiles.put(filename, "0");
-            }
+
         }
         return resultFiles;
+    }
+    private static void conflictHandling(){
+
     }
 }
 
