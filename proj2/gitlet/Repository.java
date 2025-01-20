@@ -534,7 +534,7 @@ public class Repository {
             System.out.println("You have uncommitted changes.");
             System.exit(0);
         }
-        if (plainFilenamesIn(BRANCHES).contains(branchName)) {
+        if (!plainFilenamesIn(BRANCHES).contains(branchName)) {
             System.out.println("A branch with that name already exists.");
             System.exit(0);
         }
