@@ -46,6 +46,13 @@ public class Commit implements Serializable {
         id = generateID();
     }
 
+    public Commit(String commitMessage,ArrayList<String > parentsID,TreeMap<String ,String> result){
+        message = commitMessage;
+        this.parentsID = parentsID;
+        blobsID = result;
+        date = dateToTimeStamp(new Date());
+        id = generateID();
+    }
     public ArrayList<String> getParentsID() {
         return parentsID;
     }
@@ -91,7 +98,11 @@ public class Commit implements Serializable {
     public void printCommit() {
         message("===");
         message("commit %s", id);
-        //TODO:Merge
+        if(parentsID.size()>1){
+            String parent1 = parentsID.get(0).substring(0, 7);
+            String parent2 = parentsID.get(1).substring(0, 7);
+            message("Merge: %s %s",parent1,parent2);
+        }
         message("Date: %s", date);
         message(message);
         message("");

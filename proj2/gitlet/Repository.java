@@ -1,8 +1,11 @@
 package gitlet;
 
+import com.sun.source.tree.Tree;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static gitlet.Commit.*;
@@ -115,28 +118,19 @@ public class Repository {
     //judge curFile's version ==curCommit 's version
     private static boolean isBlobIdenticalToCommit(Blob blob) {
         TreeMap<String, String> blobsID = getTheLatestCommit().getBlobsID();
-        if (blobsID.containsValue(blob.getId())) {
-            return true;
-        }
-        return false;
+        return blobsID.containsValue(blob.getId());
     }
 
     private static boolean isFileExistInCWD(String fileName) {
-        if (!plainFilenamesIn(CWD).contains(fileName)) {
-            return false;
-        }
-        return true;
+        return plainFilenamesIn(CWD).contains(fileName);
     }
 
     private static boolean isFileExistInGitlet(String fileName) {
         if (isFileExistInCWD(fileName)) {
             return true;
         } else {
-            if (isFileTrackedInCommit(fileName, getTheLatestCommit())) {
-                return true;
-            }
+            return isFileTrackedInCommit(fileName, getTheLatestCommit());
         }
-        return false;
     }
 
     public static void add(String fileName) throws IOException {
@@ -482,10 +476,10 @@ public class Repository {
      * @param args
      */
     public static void handleCheckout(String[] args) {
-        if (args.length == 3 && args[1].equals("--")) {
+        if (args.length == 3 && "--".equals(args[1])) {
             String fileName = args[2];
             Repository.checkoutFileFromHead(fileName);
-        } else if (args.length == 4 && args[2].equals("--")) {
+        } else if (args.length == 4 && "--".equals(args[2])) {
             String commitId = args[1];
             String fileName = args[3];
             Repository.checkoutFileFromCommit(commitId, fileName);
@@ -635,9 +629,10 @@ public class Repository {
      *
      * @param branchName
      */
-    public static void merge(String branchName) {
+    public static void merge(String branchName) throws IOException {
         sanityCheckBeforeMerge(branchName);
         mergeEasyCase(branchName);
+        createMergeCommit(branchName);
     }
 
     /**
@@ -659,13 +654,12 @@ public class Repository {
      * @param branchName
      * @return
      */
-    private static HashMap<String, String> resultFiles(String branchName) {
+    private static TreeMap<String, String> getMergeResultFiles(String branchName) throws IOException {
         String splitPointId = findSplitPointId(branchName);
         TreeMap<String, String> branchFiles = getBranchCommit(branchName).getBlobsID();
         TreeMap<String, String> splitFiles = getCommitById(splitPointId).getBlobsID();
         TreeMap<String, String> headFiles = getTheLatestCommit().getBlobsID();
-        HashMap<String, String> allFiles = new HashMap<>();
-        HashMap<String, String> resultFiles = new HashMap<>();
+        TreeMap<String, String> resultFiles = new TreeMap<>();
         loadStage();
         for (String fileName : splitFiles.keySet()) {
             //both head and other have this file
@@ -673,20 +667,25 @@ public class Repository {
                 //other modify this file but head not
                 if (!branchFiles.get(fileName).equals(splitFiles.get(fileName))
                         && headFiles.get(fileName).equals(splitFiles.get(fileName))) {
+                    filesCheckBeforeCheckOut(fileName, getBranchCommitId(branchName));
                     addStageMap.stageSave(fileName, headFiles.get(fileName));
                     checkoutFileFromCommit(getBranchCommitId(branchName), fileName);
                     resultFiles.put(fileName, branchFiles.get(fileName));
                 }
                 if (!branchFiles.get(fileName).equals(splitFiles.get(fileName))
                         && !headFiles.get(fileName).equals(splitFiles.get(fileName))
-                        && !headFiles.get(fileName).equals(branchFiles.get(fileName))){
-                    //TODO:conflict
+                        && !headFiles.get(fileName).equals(branchFiles.get(fileName))) {
+                    conflictHandling(headFiles.get(fileName), branchFiles.get(fileName), fileName);
+                    Blob blob = new Blob(readContents(join(CWD, fileName)), fileName);
+                    saveToFile(blob, blob.getId(), BLOBS);
+                    resultFiles.put(fileName, blob.getId());
                 }
             }
             //head have this file but other not
             if (headFiles.containsKey(fileName) && !branchFiles.containsKey(fileName)) {
                 //head not modify this file
                 if (headFiles.get(fileName).equals(splitFiles.get(fileName))) {
+                    filesCheckBeforeCheckOut(fileName, getBranchCommitId(branchName));
                     restrictedDelete(join(CWD, fileName));
                     if (resultFiles.containsKey(fileName)) {
                         resultFiles.remove(fileName);
@@ -694,14 +693,20 @@ public class Repository {
                 }
                 //head modify this file
                 if (headFiles.get(fileName).equals(splitFiles.get(fileName))) {
-                    //TODO:conflict
+                    conflictHandling(headFiles.get(fileName), branchFiles.get(fileName), fileName);
+                    Blob blob = new Blob(readContents(join(CWD, fileName)), fileName);
+                    saveToFile(blob, blob.getId(), BLOBS);
+                    resultFiles.put(fileName, blob.getId());
                 }
             }
             //file exist in other,but head not
             if (branchFiles.containsKey(fileName) && !headFiles.containsKey(fileName)) {
                 //other modify
                 if (!branchFiles.get(fileName).equals(splitFiles.get(fileName))) {
-                    //TODO:conflict
+                    conflictHandling(headFiles.get(fileName), branchFiles.get(fileName), fileName);
+                    Blob blob = new Blob(readContents(join(CWD, fileName)), fileName);
+                    saveToFile(blob, blob.getId(), BLOBS);
+                    resultFiles.put(fileName, blob.getId());
                 }
             }
         }
@@ -709,21 +714,72 @@ public class Repository {
             //neither split nor head have this file
             if (!splitFiles.containsKey(fileName)
                     && !headFiles.containsKey(fileName)) {
+                filesCheckBeforeCheckOut(fileName, getBranchCommitId(branchName));
                 addStageMap.stageSave(fileName, branchFiles.get(fileName));
                 checkoutFileFromCommit(getBranchCommitId(branchName), fileName);
                 resultFiles.put(fileName, branchFiles.get(fileName));
             }
             //split not but head have this file
-            if(!splitFiles.containsKey(fileName)
-                    && !headFiles.get(fileName).equals(branchFiles.get(fileName))){
-                //TODO:conflict
+            if (!splitFiles.containsKey(fileName)
+                    && !headFiles.get(fileName).equals(branchFiles.get(fileName))) {
+                conflictHandling(headFiles.get(fileName), branchFiles.get(fileName), fileName);
+                Blob blob = new Blob(readContents(join(CWD, fileName)), fileName);
+                saveToFile(blob, blob.getId(), BLOBS);
+                resultFiles.put(fileName, blob.getId());
             }
 
         }
         return resultFiles;
     }
-    private static void conflictHandling(){
 
+    /**
+     * 接收head分支与branch分支的内容，
+     * 构成如下形式：
+     * <<<<<<< HEAD
+     * contents of file in current branch
+     * =======
+     * contents of file in given branch
+     * >>>>>>>
+     * 将该内容重新写回文件
+     */
+    private static void conflictHandling(String headBlodId, String branchBlobId, String fileName) {
+        System.out.println("Encountered a merge conflict.");
+        String head;
+        String branch;
+        if (headBlodId == null) {
+            head = "";
+            Blob branchBlob = readObject(join(BLOBS, branchBlobId), Blob.class);
+            branch = new String(branchBlob.getBytes(), StandardCharsets.UTF_8);
+            String contents = "<<<<<<< HEAD\n" + head + "=======\n"
+                    + branch + ">>>>>>>\n";
+            writeContents(join(CWD, fileName), contents);
+            return;
+        }
+        if (branchBlobId == null) {
+            branch = "";
+            Blob headBlob = readObject(join(BLOBS, headBlodId), Blob.class);
+            head = new String(headBlob.getBytes(), StandardCharsets.UTF_8);
+            String contents = "<<<<<<< HEAD\n" + head + "=======\n"
+                    + branch + ">>>>>>>\n";
+            writeContents(join(CWD, fileName), contents);
+            return;
+        }
+        Blob headBlob = readObject(join(BLOBS, headBlodId), Blob.class);
+        Blob branchBlob = readObject(join(BLOBS, branchBlobId), Blob.class);
+        head = new String(headBlob.getBytes(), StandardCharsets.UTF_8);
+        branch = new String(branchBlob.getBytes(), StandardCharsets.UTF_8);
+        String contents = "<<<<<<< HEAD\n" + head + "=======\n"
+                + branch + ">>>>>>>\n";
+        writeContents(join(CWD, fileName), contents);
+    }
+
+    private static Commit createMergeCommit(String branchName) throws IOException {
+        TreeMap<String, String> mergeResultFiles = getMergeResultFiles(branchName);
+        String msg = "Merged "+getCurrentBranchName()+" into "+branchName+".";
+        ArrayList<String> parentsId = new ArrayList<>();
+        parentsId.add(getBranchCommitId(branchName));
+        parentsId.add(getCurrentBranch());
+        return new Commit(msg,parentsId,mergeResultFiles);
     }
 }
 
