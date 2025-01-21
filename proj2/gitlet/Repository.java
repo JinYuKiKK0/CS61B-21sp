@@ -636,20 +636,27 @@ public class Repository {
     }
 
     /**
-     * 遍历split每个文件
-     * 1. 如果head,other都有该文件
-     * other修改了文件
-     * head没有更改文件  更改为other版本并暂存
-     * head更改了，且两者改动不一致（conflict）
-     * 2. 如果head中存在，而other中不存在
-     * head没有更改，删除该文件，标记为untracked
-     * head中修改了，两者修改方式不一致（conflict）
-     * 3. 如果other中存在，而head中不存在
-     * other更改了，改动方式不一致（conflict）
-     * 遍历other每个文件
-     * split中没有该文件
-     * head也没有该文件，暂存当前文件，并checkout至other
-     * head有该文件，且改动方式不一致（conflict）
+     * 1. 遍历split每个文件
+     *      1. 如果head,other都有该文件
+     *          1. other修改了文件
+     *              1. head没有更改文件  更改为other版本并暂存
+     *              2. head更改了，且两者改动不一致（conflict）
+     *          2. other没有修改
+     *              1. 无论head中有无更改，都保留head中原样//
+     *      2. 如果head中存在，而other中不存在
+     *          1. head没有更改，删除该文件，标记为untracked
+     *          2. head中修改了，两者修改方式不一致（conflict）
+     *      3. 如果other中存在，而head中不存在
+     *          1. other更改了，改动方式不一致（conflict）
+     *          2. other没更改，则将该文件标记为untracked
+     *      4. 如果other与head中都不存在
+     *          1. 保持不存在//
+     * 2. 遍历other每个文件
+     *       1. split中没有该文件
+     *          1. head也没有该文件，暂存当前文件，并checkout至other
+     *          2. head有该文件，且改动方式不一致（conflict）
+     *
+     *
      *
      * @param branchName
      * @return
@@ -679,6 +686,9 @@ public class Repository {
                     Blob blob = new Blob(readContents(join(CWD, fileName)), fileName);
                     saveToFile(blob, blob.getId(), BLOBS);
                     resultFiles.put(fileName, blob.getId());
+                }
+                if(!branchFiles.get(fileName).equals(splitFiles.get(fileName))){
+                    resultFiles.put(fileName, headFiles.get(fileName));
                 }
             }
             //head have this file but other not
@@ -721,6 +731,8 @@ public class Repository {
             }
             //split not but head have this file
             if (!splitFiles.containsKey(fileName)
+                    && headFiles.containsKey(fileName)
+                    //TreeMap中key不存在，返回null，equals(null)空指针异常
                     && !headFiles.get(fileName).equals(branchFiles.get(fileName))) {
                 conflictHandling(headFiles.get(fileName), branchFiles.get(fileName), fileName);
                 Blob blob = new Blob(readContents(join(CWD, fileName)), fileName);
