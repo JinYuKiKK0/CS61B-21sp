@@ -535,7 +535,7 @@ public class Repository {
             System.exit(0);
         }
         if (!plainFilenamesIn(BRANCHES).contains(branchName)) {
-            System.out.println("A branch with that name already exists.");
+            System.out.println("A branch with that name does not exists.");
             System.exit(0);
         }
         if (getCurrentBranchName().equals(branchName)) {
@@ -667,7 +667,7 @@ public class Repository {
                 //other modify this file but head not
                 if (!branchFiles.get(fileName).equals(splitFiles.get(fileName))
                         && headFiles.get(fileName).equals(splitFiles.get(fileName))) {
-                    filesCheckBeforeCheckOut(fileName, getBranchCommitId(branchName));
+                    checkBeforeMergeFile(fileName, resultFiles);
                     addStageMap.stageSave(fileName, headFiles.get(fileName));
                     checkoutFileFromCommit(getBranchCommitId(branchName), fileName);
                     resultFiles.put(fileName, branchFiles.get(fileName));
@@ -685,7 +685,7 @@ public class Repository {
             if (headFiles.containsKey(fileName) && !branchFiles.containsKey(fileName)) {
                 //head not modify this file
                 if (headFiles.get(fileName).equals(splitFiles.get(fileName))) {
-                    filesCheckBeforeCheckOut(fileName, getBranchCommitId(branchName));
+                    checkBeforeMergeFile(fileName, resultFiles);
                     restrictedDelete(join(CWD, fileName));
                     if (resultFiles.containsKey(fileName)) {
                         resultFiles.remove(fileName);
@@ -714,7 +714,7 @@ public class Repository {
             //neither split nor head have this file
             if (!splitFiles.containsKey(fileName)
                     && !headFiles.containsKey(fileName)) {
-                filesCheckBeforeCheckOut(fileName, getBranchCommitId(branchName));
+                checkBeforeMergeFile(fileName, resultFiles);
                 addStageMap.stageSave(fileName, branchFiles.get(fileName));
                 checkoutFileFromCommit(getBranchCommitId(branchName), fileName);
                 resultFiles.put(fileName, branchFiles.get(fileName));
@@ -730,6 +730,17 @@ public class Repository {
 
         }
         return resultFiles;
+    }
+
+    //如果当前提交中的未跟踪文件将被合并覆盖或删除，打印
+    //There is an untracked file in the way; delete it, or add and commit it first.并退出
+    private static void checkBeforeMergeFile(String fileName, TreeMap<String, String> resultFiles) {
+        boolean isUntracked = isFileTrackedInCommit(fileName, getTheLatestCommit());
+        boolean isOverWritten = resultFiles.containsKey(fileName);
+        if (isUntracked && isOverWritten) {
+            System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+            System.exit(0);
+        }
     }
 
     /**
@@ -775,11 +786,11 @@ public class Repository {
 
     private static Commit createMergeCommit(String branchName) throws IOException {
         TreeMap<String, String> mergeResultFiles = getMergeResultFiles(branchName);
-        String msg = "Merged "+getCurrentBranchName()+" into "+branchName+".";
+        String msg = "Merged " + getCurrentBranchName() + " into " + branchName + ".";
         ArrayList<String> parentsId = new ArrayList<>();
         parentsId.add(getBranchCommitId(branchName));
         parentsId.add(getCurrentBranch());
-        return new Commit(msg,parentsId,mergeResultFiles);
+        return new Commit(msg, parentsId, mergeResultFiles);
     }
 }
 
