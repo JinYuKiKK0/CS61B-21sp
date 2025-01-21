@@ -650,20 +650,17 @@ public class Repository {
             //1. split中存在，split == head , other修改 ;检出至other中版本并暂存以供提交
             //FIXME:不包含blobId，可能预示着该文件被修改或被移除，为了区别加上是否包含fileName
             if(splitFiles.containsKey(blobId) && headFiles.containsKey(blobId)
-                    && branchFiles.containsValue(allFiles.get(blobId)) 
-                    && !branchFiles.containsKey(blobId)) {
-                
+                    && fileExistButContentsDiff(allFiles,branchFiles,blobId)) {
+
             }
             //2. split中存在，split == other , head修改,保持head原样
             else if(splitFiles.containsKey(blobId) && branchFiles.containsKey(blobId)
-                    && headFiles.containsValue(allFiles.get(blobId))
-                    && !headFiles.containsKey(blobId)){
+                    && fileExistButContentsDiff(allFiles,headFiles,blobId)){
                 
             }
             //3. split中存在，split != head == other ,以相同方式修改(修改或移除)，保持原样
                 //如果head & other都移除了该文件,而CWD中存在同名文件，合并后依然缺省(既不暂存也不追踪)
-            else if (splitFiles.containsValue(allFiles.get(blobId))
-                    && !splitFiles.containsKey(blobId)
+            else if (fileExistButContentsDiff(allFiles,splitFiles,blobId)
                     && headFiles.containsKey(blobId)
                     && branchFiles.containsKey(blobId)) {
                 
@@ -683,7 +680,12 @@ public class Repository {
 
         return resultFiles;
     }
-    private static boolean fileExistButContentsDiff()
+    private static boolean fileExistButContentsDiff(TreeMap<String,String> allFiles,
+                                                    TreeMap<String,String> givenFiles,
+                                                    String blobId){
+            return givenFiles.containsValue(allFiles.get(blobId))
+                    && !givenFiles.containsKey(blobId);
+    }
     private static void mapInitialize(String branchName, Map<String ,String> map1, Map<String ,String> map2,
                                       Map<String ,String> map3,Map<String ,String> allFiles) {
         for (String fileName : getBranchCommit(branchName).getBlobsID().keySet()) {
