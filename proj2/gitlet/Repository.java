@@ -636,112 +636,68 @@ public class Repository {
     }
 
     /**
-     * 1. 遍历split每个文件
-     *      1. 如果head,other都有该文件
-     *          1. other修改了文件
-     *              1. head没有更改文件  更改为other版本并暂存
-     *              2. head更改了，且两者改动不一致（conflict）
-     *          2. other没有修改
-     *              1. 无论head中有无更改，都保留head中原样//
-     *      2. 如果head中存在，而other中不存在
-     *          1. head没有更改，删除该文件，标记为untracked
-     *          2. head中修改了，两者修改方式不一致（conflict）
-     *      3. 如果other中存在，而head中不存在
-     *          1. other更改了，改动方式不一致（conflict）
-     *          2. other没更改，则将该文件标记为untracked
-     *      4. 如果other与head中都不存在
-     *          1. 保持不存在//
-     * 2. 遍历other每个文件
-     *       1. split中没有该文件
-     *          1. head也没有该文件，暂存当前文件，并checkout至other
-     *          2. head有该文件，且改动方式不一致（conflict）
-     *
-     *
-     *
      * @param branchName
      * @return
      */
     private static TreeMap<String, String> getMergeResultFiles(String branchName) throws IOException {
-        String splitPointId = findSplitPointId(branchName);
-        TreeMap<String, String> branchFiles = getBranchCommit(branchName).getBlobsID();
-        TreeMap<String, String> splitFiles = getCommitById(splitPointId).getBlobsID();
-        TreeMap<String, String> headFiles = getTheLatestCommit().getBlobsID();
-        TreeMap<String, String> resultFiles = new TreeMap<>();
-        loadStage();
-        for (String fileName : splitFiles.keySet()) {
-            //both head and other have this file
-            if (headFiles.containsKey(fileName) && branchFiles.containsKey(fileName)) {
-                //other modify this file but head not
-                if (!branchFiles.get(fileName).equals(splitFiles.get(fileName))
-                        && headFiles.get(fileName).equals(splitFiles.get(fileName))) {
-                    checkBeforeMergeFile(fileName, resultFiles);
-                    addStageMap.stageSave(fileName, headFiles.get(fileName));
-                    checkoutFileFromCommit(getBranchCommitId(branchName), fileName);
-                    resultFiles.put(fileName, branchFiles.get(fileName));
-                }
-                if (!branchFiles.get(fileName).equals(splitFiles.get(fileName))
-                        && !headFiles.get(fileName).equals(splitFiles.get(fileName))
-                        && !headFiles.get(fileName).equals(branchFiles.get(fileName))) {
-                    conflictHandling(headFiles.get(fileName), branchFiles.get(fileName), fileName);
-                    Blob blob = new Blob(readContents(join(CWD, fileName)), fileName);
-                    saveToFile(blob, blob.getId(), BLOBS);
-                    resultFiles.put(fileName, blob.getId());
-                }
-                if(!branchFiles.get(fileName).equals(splitFiles.get(fileName))){
-                    resultFiles.put(fileName, headFiles.get(fileName));
-                }
+        TreeMap<String, String> branchFiles = new TreeMap<>();
+        TreeMap<String, String> splitFiles = new TreeMap<>();
+        TreeMap<String, String> headFiles = new TreeMap<>();
+        TreeMap<String, String> allFiles = new TreeMap<>();
+        mapInitialize(branchName,branchFiles,splitFiles,headFiles,allFiles);
+        for (String blobId : allFiles.keySet()) {
+            //TODO:暂存的目的是使得创建合并提交时从暂存区获得需要跟踪的文件
+            //1. split中存在，split == head , other修改 ;检出至other中版本并暂存以供提交
+            //FIXME:不包含blobId，可能预示着该文件被修改或被移除，为了区别加上是否包含fileName
+            if(splitFiles.containsKey(blobId) && headFiles.containsKey(blobId)
+                    && branchFiles.containsValue(allFiles.get(blobId)) 
+                    && !branchFiles.containsKey(blobId)) {
+                
             }
-            //head have this file but other not
-            if (headFiles.containsKey(fileName) && !branchFiles.containsKey(fileName)) {
-                //head not modify this file
-                if (headFiles.get(fileName).equals(splitFiles.get(fileName))) {
-                    checkBeforeMergeFile(fileName, resultFiles);
-                    restrictedDelete(join(CWD, fileName));
-                    if (resultFiles.containsKey(fileName)) {
-                        resultFiles.remove(fileName);
-                    }
-                }
-                //head modify this file
-                if (headFiles.get(fileName).equals(splitFiles.get(fileName))) {
-                    conflictHandling(headFiles.get(fileName), branchFiles.get(fileName), fileName);
-                    Blob blob = new Blob(readContents(join(CWD, fileName)), fileName);
-                    saveToFile(blob, blob.getId(), BLOBS);
-                    resultFiles.put(fileName, blob.getId());
-                }
+            //2. split中存在，split == other , head修改,保持head原样
+            else if(splitFiles.containsKey(blobId) && branchFiles.containsKey(blobId)
+                    && headFiles.containsValue(allFiles.get(blobId))
+                    && !headFiles.containsKey(blobId)){
+                
             }
-            //file exist in other,but head not
-            if (branchFiles.containsKey(fileName) && !headFiles.containsKey(fileName)) {
-                //other modify
-                if (!branchFiles.get(fileName).equals(splitFiles.get(fileName))) {
-                    conflictHandling(headFiles.get(fileName), branchFiles.get(fileName), fileName);
-                    Blob blob = new Blob(readContents(join(CWD, fileName)), fileName);
-                    saveToFile(blob, blob.getId(), BLOBS);
-                    resultFiles.put(fileName, blob.getId());
-                }
+            //3. split中存在，split != head == other ,以相同方式修改(修改或移除)，保持原样
+                //如果head & other都移除了该文件,而CWD中存在同名文件，合并后依然缺省(既不暂存也不追踪)
+            else if (splitFiles.containsValue(allFiles.get(blobId))
+                    && !splitFiles.containsKey(blobId)
+                    && headFiles.containsKey(blobId)
+                    && branchFiles.containsKey(blobId)) {
+                
             }
-        }
-        for (String fileName : branchFiles.keySet()) {
-            //neither split nor head have this file
-            if (!splitFiles.containsKey(fileName)
-                    && !headFiles.containsKey(fileName)) {
-                checkBeforeMergeFile(fileName, resultFiles);
-                addStageMap.stageSave(fileName, branchFiles.get(fileName));
-                checkoutFileFromCommit(getBranchCommitId(branchName), fileName);
-                resultFiles.put(fileName, branchFiles.get(fileName));
-            }
-            //split not but head have this file
-            if (!splitFiles.containsKey(fileName)
-                    && headFiles.containsKey(fileName)
-                    //TreeMap中key不存在，返回null，equals(null)空指针异常
-                    && !headFiles.get(fileName).equals(branchFiles.get(fileName))) {
-                conflictHandling(headFiles.get(fileName), branchFiles.get(fileName), fileName);
-                Blob blob = new Blob(readContents(join(CWD, fileName)), fileName);
-                saveToFile(blob, blob.getId(), BLOBS);
-                resultFiles.put(fileName, blob.getId());
-            }
+            //4. split与head中不存在，仅存在于other，合并后应该检出至other版本，并将该文件暂存以便创建合并提交时包含该文件
+            else if (!splitFiles.containsKey(blobId) && headFiles.containsKey(blobId)
+                    && ) {
 
+            }
+            //5. split与other中不存在，仅存在于head，合并后仍然存在
+            //6. split中存在，split == other，head中被移除;保持被移除的状态
+            //7. split中存在，split == head，other中被移除;从CWD中移除，同时不跟踪(mergeCommit中不包含)
+            //8. split中存在，split != head != other,以不同方式修改(或移除或修改),conflict
         }
+
+        TreeMap<String, String> resultFiles = new TreeMap<>();
+
         return resultFiles;
+    }
+    private static boolean fileExistButContentsDiff()
+    private static void mapInitialize(String branchName, Map<String ,String> map1, Map<String ,String> map2,
+                                      Map<String ,String> map3,Map<String ,String> allFiles) {
+        for (String fileName : getBranchCommit(branchName).getBlobsID().keySet()) {
+            map1.put(getBranchCommit(branchName).getBlobsID().get(fileName), fileName);
+        }
+        for (String fileName : getCommitById(findSplitPointId(branchName)).getBlobsID().keySet()) {
+            map2.put(getCommitById(findSplitPointId(branchName)).getBlobsID().get(fileName), fileName);
+        }
+        for (String fileName : getTheLatestCommit().getBlobsID().keySet()) {
+            map3.put(getTheLatestCommit().getBlobsID().get(fileName), fileName);
+        }
+        allFiles.putAll(map1);
+        allFiles.putAll(map2);
+        allFiles.putAll(map3);
     }
 
     //如果当前提交中的未跟踪文件将被合并覆盖或删除，打印
