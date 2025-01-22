@@ -654,8 +654,10 @@ public class Repository {
             String headBlobId = headFiles.get(fileName);
             String branchBlobId = branchFiles.get(fileName);
             if (splitBlobId != null) {
+                checkBeforeMergeFile(fileName,mergeFiles);
                 fileHandleInSplit(fileName, splitBlobId, headBlobId, branchBlobId, mergeFiles);
             } else {
+                checkBeforeMergeFile(fileName,mergeFiles);
                 fileHandleNotInSplit(fileName, headBlobId, branchBlobId, mergeFiles);
             }
         }
@@ -663,7 +665,7 @@ public class Repository {
     }
 
     private static void fileHandleInSplit(String fileName, String splitBlob, String headBlob,
-                                          String branchBlob, TreeMap<String, String> mergeResult) {
+                                          String branchBlob, TreeMap<String, String> mergeResult) throws IOException {
         loadStage();
         boolean headModified = (headBlob != null && Objects.equals(headBlob, splitBlob));
         boolean branchModified = (branchBlob != null && Objects.equals(branchBlob, splitBlob));
@@ -682,7 +684,9 @@ public class Repository {
         //如果head & other都移除了该文件,而CWD中存在同名文件，合并后依然缺省(既不暂存也不追踪)
         else if ((headModified && branchModified && headBlob.equals(branchBlob))
                 || (headDeleted && branchDeleted)) {
-            if (headBlob != null) mergeResult.put(fileName, headBlob);
+            if (headBlob != null) {
+                mergeResult.put(fileName, headBlob);
+            }
         }
         //4. split中存在，split == other，head中被移除 ; 保持被移除的状态
         else if (!branchModified && headDeleted) {
@@ -705,7 +709,7 @@ public class Repository {
     }
 
     private static void fileHandleNotInSplit(String fileName, String headBlob,
-                                             String branchBlob, TreeMap<String, String> mergeResult) {
+                                             String branchBlob, TreeMap<String, String> mergeResult) throws IOException {
         boolean headHas = (headBlob != null);
         boolean branchHas = (branchBlob != null);
         //7. split与head中不存在，仅存在于other ; 合并后应该检出至other版本，并将该文件暂存以便创建合并提交时包含该文件
@@ -731,7 +735,7 @@ public class Repository {
     //如果当前提交中的未跟踪文件将被合并覆盖或删除，打印
     //There is an untracked file in the way; delete it, or add and commit it first.并退出
     private static void checkBeforeMergeFile(String fileName, TreeMap<String, String> resultFiles) {
-        boolean isUntracked = isFileTrackedInCommit(fileName, getTheLatestCommit());
+        boolean isUntracked = !isFileTrackedInCommit(fileName, getTheLatestCommit());
         boolean isOverWritten = resultFiles.containsKey(fileName);
         if (isUntracked && isOverWritten) {
             System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
@@ -749,35 +753,42 @@ public class Repository {
      * >>>>>>>
      * 将该内容重新写回文件
      */
-    private static void conflictHandling(String headBlodId, String branchBlobId, String fileName) {
+    private static void conflictHandling(String headBlodId, String branchBlobId, String fileName) throws IOException {
+        loadStage();
         System.out.println("Encountered a merge conflict.");
+        String conflictContents = getConflictContents(headBlodId, branchBlobId);
+        Blob conflictFile = new Blob(conflictContents.getBytes(StandardCharsets.UTF_8), fileName);
+        saveToFile(conflictFile, fileName, BLOBS);
+        addStageMap.stageSave(fileName, conflictFile.getId());
+        writeContents(join(CWD, fileName), conflictContents);
+    }
+
+    private static String getConflictContents(String headBlodId, String branchBlobId) {
         String head;
         String branch;
-        if (headBlodId == null) {
+        if (branchBlobId == null) {
             head = "";
             Blob branchBlob = readObject(join(BLOBS, branchBlobId), Blob.class);
             branch = new String(branchBlob.getBytes(), StandardCharsets.UTF_8);
             String contents = "<<<<<<< HEAD\n" + head + "=======\n"
                     + branch + ">>>>>>>\n";
-            writeContents(join(CWD, fileName), contents);
-            return;
-        }
-        if (branchBlobId == null) {
+            return contents;
+        } else if ((headBlodId == null)) {
             branch = "";
             Blob headBlob = readObject(join(BLOBS, headBlodId), Blob.class);
             head = new String(headBlob.getBytes(), StandardCharsets.UTF_8);
             String contents = "<<<<<<< HEAD\n" + head + "=======\n"
                     + branch + ">>>>>>>\n";
-            writeContents(join(CWD, fileName), contents);
-            return;
+            return contents;
+        } else {
+            Blob headBlob = readObject(join(BLOBS, headBlodId), Blob.class);
+            Blob branchBlob = readObject(join(BLOBS, branchBlobId), Blob.class);
+            head = new String(headBlob.getBytes(), StandardCharsets.UTF_8);
+            branch = new String(branchBlob.getBytes(), StandardCharsets.UTF_8);
+            String contents = "<<<<<<< HEAD\n" + head + "=======\n"
+                    + branch + ">>>>>>>\n";
+            return contents;
         }
-        Blob headBlob = readObject(join(BLOBS, headBlodId), Blob.class);
-        Blob branchBlob = readObject(join(BLOBS, branchBlobId), Blob.class);
-        head = new String(headBlob.getBytes(), StandardCharsets.UTF_8);
-        branch = new String(branchBlob.getBytes(), StandardCharsets.UTF_8);
-        String contents = "<<<<<<< HEAD\n" + head + "=======\n"
-                + branch + ">>>>>>>\n";
-        writeContents(join(CWD, fileName), contents);
     }
 
     private static Commit createMergeCommit(String branchName) throws IOException {
