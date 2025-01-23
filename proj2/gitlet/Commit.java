@@ -123,24 +123,7 @@ public class Commit implements Serializable {
 
 
     public static Commit getCommitById(String commitId) {
-        if(commitId.length()<40){
-            boolean flag = false;
-            String commitFileName = null;
-            for (String commidCode : plainFilenamesIn(COMMITS)) {
-                String subCommitCode = commidCode.substring(0, commidCode.length() - 1);
-                if(commitId.equals(subCommitCode)){
-                    flag = !flag;
-                    commitFileName = commidCode;
-                }
-            }
-            if(flag){
-                return readObject(join(COMMITS, commitFileName), Commit.class);
-            }else{
-                System.out.println("No commit with that id exists.");
-                System.exit(0);
-            }
-        }
-        else if (!plainFilenamesIn(COMMITS).equals(commitId)) {
+        if (!plainFilenamesIn(COMMITS).equals(commitId)) {
             System.out.println("No commit with that id exists.");
             System.exit(0);
         }
