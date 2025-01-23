@@ -140,13 +140,14 @@ public class Commit implements Serializable {
                 }
                 if(foundFile != null){
                     return readObject(join(COMMITS,commitId), Commit.class);
+                } else {
+                    System.out.println("No commit with that id exists.");
+                    System.exit(0);
                 }
-                System.out.println("No commit with that id exists.");
-                System.exit(0);
             }
-        }
+        } 
         if(!commitFiles.contains(commitId)){
-            System.out.println("No commit with that id exists.");
+            System.out.println("File does not exist in that commit.");
             System.exit(0);
         }
         return readObject(join(COMMITS,commitId), Commit.class);
