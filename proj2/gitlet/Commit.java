@@ -105,7 +105,9 @@ public class Commit implements Serializable {
         }
         message("Date: %s", date);
         message(message);
-        message("");
+        if(!"initial commit".equals(message)){
+            message("");
+        }
     }
 
     /**

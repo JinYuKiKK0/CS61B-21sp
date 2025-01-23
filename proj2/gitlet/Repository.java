@@ -435,7 +435,8 @@ public class Repository {
         setBranch(branchName);
         initializeStages();
     }
-
+    //如果当前分支中有未跟踪的工作文件，并且该文件将被重置覆盖，则打印
+    //There is an untracked file in the way; delete it, or add and commit it first.
     private static void filesCheckBeforeCheckOut(String fileName, String commitId) {
         boolean isUntracked = !isFileTrackedInCommit(fileName, getTheLatestCommit());
         boolean willBeOverwritten = isFileTrackedInCommit(fileName, getCommitById(commitId));
