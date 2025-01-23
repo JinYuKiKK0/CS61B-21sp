@@ -367,7 +367,6 @@ public class Repository {
         String headCommitId = getCurrentBranch();
         String blobId = getBlobIdByCommitIdAndFileName(headCommitId, fileName);
         if (blobId != null) {
-            //FIXME ：file text contents doesn't restore but -> blob
             copyBlobToFile(blobId, fileName);
         } else {
             System.out.println("File does not exist in that commit.");

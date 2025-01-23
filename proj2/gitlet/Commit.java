@@ -123,28 +123,33 @@ public class Commit implements Serializable {
 
 
     public static Commit getCommitById(String commitId) {
-        if(commitId.length()<40){
-            boolean flag = false;
-            String commitFileName = null;
-            for (String commidCode : plainFilenamesIn(COMMITS)) {
-                String subCommitCode = commidCode.substring(0, commidCode.length() - 1);
-                if(commitId.equals(subCommitCode)){
-                    flag = !flag;
-                    commitFileName = commidCode;
+        List<String> commitFiles = plainFilenamesIn(COMMITS);
+        String foundFile = null;
+        if(commitId.length() < 40){
+            for (String commitid : commitFiles) {
+                if(commitid.length() < commitId.length()){
+                    continue;
                 }
-            }
-            if(flag){
-                return readObject(join(COMMITS, commitFileName), Commit.class);
-            }else{
+                String shortId = commitid.substring(0,commitid.length());
+                if(commitId.equals(shortId)){
+                    if(foundFile != null){
+                        System.out.println("Multiple commits with that prefix exist.");
+                        System.exit(0);
+                    }
+                    foundFile = commitid;
+                }
+                if(foundFile != null){
+                    return readObject(join(COMMITS,commitId), Commit.class);
+                }
                 System.out.println("No commit with that id exists.");
                 System.exit(0);
             }
         }
-        else if (!plainFilenamesIn(COMMITS).contains(commitId)) {
+        if(!commitFiles.contains(commitId)){
             System.out.println("No commit with that id exists.");
             System.exit(0);
         }
-        return readObject(join(COMMITS, commitId), Commit.class);
+        return readObject(join(COMMITS,commitId), Commit.class);
     }
 
 }
