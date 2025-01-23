@@ -377,10 +377,11 @@ public class Repository {
     /**
      * Copy the file with the same name as the commit in the commitId to the current working directory (CWD)
      * overwriting if it already exists
-     *
+     * 支持短字符
      * @param commitId
      * @param fileName
      */
+    //commitId接收短Id，根据Id长度截取commit
     private static void checkoutFileFromCommit(String commitId, String fileName) {
         String blobId = getBlobIdByCommitIdAndFileName(commitId, fileName);
         if (blobId != null) {
@@ -507,7 +508,9 @@ public class Repository {
         } else if (!plainFilenamesIn(BRANCHES).contains(branchName)) {
             System.out.println("A branch with that name does not exist.");
         } else {
-            restrictedDelete(join(BRANCHES, branchName));
+            if(join(BRANCHES, branchName).exists()){
+                join(BRANCHES, branchName).delete();
+            }
         }
     }
 
@@ -695,7 +698,9 @@ public class Repository {
         //5. split中存在，split == head，other中被移除 ; 从CWD中移除该文件，同时不跟踪(mergeCommit中不包含)
         else if (!headModified && branchDeleted) {
             mergeResult.remove(fileName);
-            restrictedDelete(join(CWD,fileName));
+            if(join(CWD,fileName).exists()){
+                join(CWD,fileName).delete();
+            }
         }
         //6. 与split相比，head与other都以不同方式修改(或移除或修改) ; conflict
         //1.split存在 head修改，other移除
