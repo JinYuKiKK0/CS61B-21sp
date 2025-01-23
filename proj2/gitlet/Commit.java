@@ -130,7 +130,7 @@ public class Commit implements Serializable {
                 if (commitid.length() < commitId.length()) {
                     continue;
                 }
-                String shortId = commitid.substring(0, commitid.length());
+                String shortId = commitid.substring(0, commitId.length());
                 if (commitId.equals(shortId)) {
                     if (foundFile != null) {
                         System.out.println("Multiple commits with that prefix exist.");
