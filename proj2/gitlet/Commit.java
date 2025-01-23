@@ -121,20 +121,30 @@ public class Commit implements Serializable {
         return null;
     }
 
-    //提供长Id或短id都能获取Commit
+
     public static Commit getCommitById(String commitId) {
-        int length = commitId.length();
-        boolean exist = false;
-        for (String commitID : Objects.requireNonNull(plainFilenamesIn(COMMITS))) {
-            String subCommitId = commitID.substring(0, length - 1);
-            if (commitId.equals(subCommitId)) {
-                return readObject(join(COMMITS, commitId), Commit.class);
+        if(commitId.length()<40){
+            boolean flag = false;
+            String commitFileName = null;
+            for (String commidCode : plainFilenamesIn(COMMITS)) {
+                String subCommitCode = commidCode.substring(0, commidCode.length() - 1);
+                if(commitId.equals(subCommitCode)){
+                    flag = !flag;
+                    commitFileName = commidCode;
+                }
+            }
+            if(flag){
+                return readObject(join(COMMITS, commitFileName), Commit.class);
+            }else{
+                System.out.println("No commit with that id exists.");
+                System.exit(0);
             }
         }
-        System.out.println("No commit with that id exists.");
-        System.exit(0);
-        return null;
+        else if (!plainFilenamesIn(COMMITS).equals(commitId)) {
+            System.out.println("No commit with that id exists.");
+            System.exit(0);
+        }
+        return readObject(join(COMMITS, commitId), Commit.class);
     }
-
 
 }
