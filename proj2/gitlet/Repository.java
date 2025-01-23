@@ -632,6 +632,7 @@ public class Repository {
     public static void merge(String branchName) throws IOException {
         sanityCheckBeforeMerge(branchName);
         mergeEasyCase(branchName);
+        mergeFilesOperation(getMergeResultFiles(branchName));
         createMergeCommit(branchName);
     }
 
@@ -653,11 +654,10 @@ public class Repository {
             String splitBlobId = splitFiles.get(fileName);
             String headBlobId = headFiles.get(fileName);
             String branchBlobId = branchFiles.get(fileName);
+            checkBeforeMergeFile(fileName,mergeFiles);
             if (splitBlobId != null) {
-                checkBeforeMergeFile(fileName,mergeFiles);
                 fileHandleInSplit(fileName, splitBlobId, headBlobId, branchBlobId, mergeFiles);
             } else {
-                checkBeforeMergeFile(fileName,mergeFiles);
                 fileHandleNotInSplit(fileName, headBlobId, branchBlobId, mergeFiles);
             }
         }
@@ -692,9 +692,10 @@ public class Repository {
         else if (!branchModified && headDeleted) {
             mergeResult.remove(fileName);
         }
-        //5. split中存在，split == head，other中被移除 ; 同时不跟踪(mergeCommit中不包含)
+        //5. split中存在，split == head，other中被移除 ; 从CWD中移除该文件，同时不跟踪(mergeCommit中不包含)
         else if (!headModified && branchDeleted) {
             mergeResult.remove(fileName);
+            restrictedDelete(join(CWD,fileName));
         }
         //6. 与split相比，head与other都以不同方式修改(或移除或修改) ; conflict
         //1.split存在 head修改，other移除
@@ -702,10 +703,9 @@ public class Repository {
         //3.文件在split缺失，head与other有不同内容
         else if (headModified && branchModified && !headBlob.equals(branchBlob)) {
             conflictHandling(headBlob, branchBlob, fileName);
-        } else if (headModified && branchDeleted || headDeleted && branchModified) {
+        } else if ((headModified && branchDeleted) || (headDeleted && branchModified)) {
             conflictHandling(headBlob, branchBlob, fileName);
         }
-
     }
 
     private static void fileHandleNotInSplit(String fileName, String headBlob,
@@ -742,7 +742,13 @@ public class Repository {
             System.exit(0);
         }
     }
-
+    private static void mergeFilesOperation(TreeMap<String,String> mergeResult){
+        for (Map.Entry<String, String> files : mergeResult.entrySet()) {
+            String fileName = files.getKey();
+            String contents = files.getValue();
+            writeContents(join(CWD,fileName),contents);
+        }
+    }
     /**
      * 接收head分支与branch分支的内容，
      * 构成如下形式：
@@ -766,14 +772,14 @@ public class Repository {
     private static String getConflictContents(String headBlodId, String branchBlobId) {
         String head;
         String branch;
-        if (branchBlobId == null) {
+        if (headBlodId == null) {
             head = "";
             Blob branchBlob = readObject(join(BLOBS, branchBlobId), Blob.class);
             branch = new String(branchBlob.getBytes(), StandardCharsets.UTF_8);
             String contents = "<<<<<<< HEAD\n" + head + "=======\n"
                     + branch + ">>>>>>>\n";
             return contents;
-        } else if ((headBlodId == null)) {
+        } else if ((branchBlobId == null)) {
             branch = "";
             Blob headBlob = readObject(join(BLOBS, headBlodId), Blob.class);
             head = new String(headBlob.getBytes(), StandardCharsets.UTF_8);
