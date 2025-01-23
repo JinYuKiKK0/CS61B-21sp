@@ -125,32 +125,32 @@ public class Commit implements Serializable {
     public static Commit getCommitById(String commitId) {
         List<String> commitFiles = plainFilenamesIn(COMMITS);
         String foundFile = null;
-        if(commitId.length() < 40){
+        if (commitId.length() < 40) {
             for (String commitid : commitFiles) {
-                if(commitid.length() < commitId.length()){
+                if (commitid.length() < commitId.length()) {
                     continue;
                 }
-                String shortId = commitid.substring(0,commitid.length());
-                if(commitId.equals(shortId)){
-                    if(foundFile != null){
+                String shortId = commitid.substring(0, commitid.length());
+                if (commitId.equals(shortId)) {
+                    if (foundFile != null) {
                         System.out.println("Multiple commits with that prefix exist.");
                         System.exit(0);
                     }
                     foundFile = commitid;
                 }
-                if(foundFile != null){
-                    return readObject(join(COMMITS,commitId), Commit.class);
-                } else {
-                    System.out.println("No commit with that id exists.");
-                    System.exit(0);
-                }
             }
-        } 
-        if(!commitFiles.contains(commitId)){
-            System.out.println("File does not exist in that commit.");
+            if (foundFile != null) {
+                return readObject(join(COMMITS, commitId), Commit.class);
+            } else {
+                System.out.println("No commit with that id exists.");
+                System.exit(0);
+            }
+        }
+        if (!commitFiles.contains(commitId)) {
+            System.out.println("No commit with that id exists.");
             System.exit(0);
         }
-        return readObject(join(COMMITS,commitId), Commit.class);
+        return readObject(join(COMMITS, commitId), Commit.class);
     }
 
 }
