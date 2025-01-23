@@ -127,6 +127,7 @@ public class Commit implements Serializable {
     public static Commit getCommitById(String commitId) {
         List<String> commitFiles = plainFilenamesIn(COMMITS);
         String foundFile = null;
+        //short uid
         if (commitId.length() < 40) {
             for (String commitid : commitFiles) {
                 if (commitid.length() < commitId.length()) {
@@ -142,12 +143,13 @@ public class Commit implements Serializable {
                 }
             }
             if (foundFile != null) {
-                return readObject(join(COMMITS, commitId), Commit.class);
+                return readObject(join(COMMITS, foundFile), Commit.class);
             } else {
                 System.out.println("No commit with that id exists.");
                 System.exit(0);
             }
         }
+        //normal uid
         if (!commitFiles.contains(commitId)) {
             System.out.println("No commit with that id exists.");
             System.exit(0);
