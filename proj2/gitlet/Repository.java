@@ -478,8 +478,7 @@ public class Repository {
             return;
         }
         for (String fileName : bothTrackedFiles.keySet()) {
-            Blob blob = getBlobByFileName(fileName);
-            copyBlobToFile(blob.getId(),fileName);
+            copyBlobToFile(bothTrackedFiles.get(fileName),fileName);
         }
     }
     private static void deleteFiles(TreeMap<String, String> findOnlyCurCommitTracked){
@@ -487,7 +486,7 @@ public class Repository {
             return;
         }
         for (String fileName : findOnlyCurCommitTracked.keySet()) {
-            restrictedDelete(join(CWD,fileName));
+            join(CWD,fileName).delete();
         }
     }
     private static void writeFiles(TreeMap<String, String> findOnlyGivenCommitTracked){
@@ -533,9 +532,9 @@ public class Repository {
         TreeMap<String, String> onlyGivenCommitTracked = findOnlyGivenCommitTracked(commitId);
         TreeMap<String, String> bothCommitTracked = findBothCommitTracked(commitId);
         TreeMap<String, String> onlyCurCommitTracked = findOnlyCurCommitTracked(commitId);
-        writeFiles(onlyGivenCommitTracked);
         deleteFiles(onlyCurCommitTracked);
         overwriteFiles(bothCommitTracked);
+        writeFiles(onlyGivenCommitTracked);
     }
     /**
      * Find the corresponding file in the branches folder based on the given branchName, and read the CommitId from it
