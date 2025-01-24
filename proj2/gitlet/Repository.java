@@ -133,6 +133,15 @@ public class Repository {
         }
     }
 
+    private static Blob getBlobByFileName(String fileName){
+        for (String blobId : plainFilenamesIn(BLOBS)) {
+            Blob blob = readObject(join(BLOBS, blobId), Blob.class);
+            if(fileName.equals(blob.getFileName())){
+                return blob;
+            }
+        }
+        return null;
+    }
     public static void add(String fileName) throws IOException {
         isGiltetDirExist();
         if (!isFileExistInGitlet(fileName)) {
@@ -435,7 +444,65 @@ public class Repository {
         setBranch(branchName);
         initializeStages();
     }
-    //接下
+    private static TreeMap<String, String> findOnlyCurCommitTracked(String commitId){
+        TreeMap<String, String> givenFiles = getCommitById(commitId).getBlobsID();
+        TreeMap<String, String> curFiles = getTheLatestCommit().getBlobsID();
+        for (String fileName : givenFiles.keySet()) {
+            curFiles.remove(fileName);
+        }
+        return curFiles;
+    }
+    private static TreeMap<String, String> findBothCommitTracked(String commitId) {
+    TreeMap<String, String> givenFiles = getCommitById(commitId).getBlobsID();
+    TreeMap<String, String> curFiles = getTheLatestCommit().getBlobsID();
+    TreeMap<String, String> bothTrackedFiles = new TreeMap<>();
+    for (Map.Entry<String, String> entry : givenFiles.entrySet()) {
+        if (curFiles.containsKey(entry.getKey())) {
+            bothTrackedFiles.put(entry.getKey(), entry.getValue());
+        }
+    }
+    return bothTrackedFiles;
+}
+
+    private static TreeMap<String, String> findOnlyGivenCommitTracked(String commitId) {
+    TreeMap<String, String> givenFiles = getCommitById(commitId).getBlobsID();
+    TreeMap<String, String> curFiles = getTheLatestCommit().getBlobsID();
+    TreeMap<String, String> onlyGivenFiles = new TreeMap<>(givenFiles);
+    for (String curFileName : curFiles.keySet()) {
+        onlyGivenFiles.remove(curFileName);
+    }
+    return onlyGivenFiles;
+}
+    private static void overwriteFiles(TreeMap<String, String> bothTrackedFiles){
+        if(bothTrackedFiles.isEmpty()){
+            return;
+        }
+        for (String fileName : bothTrackedFiles.keySet()) {
+            Blob blob = getBlobByFileName(fileName);
+            copyBlobToFile(blob.getId(),fileName);
+        }
+    }
+    private static void deleteFiles(TreeMap<String, String> findOnlyCurCommitTracked){
+        if(findOnlyCurCommitTracked.isEmpty()){
+            return;
+        }
+        for (String fileName : findOnlyCurCommitTracked.keySet()) {
+            restrictedDelete(join(CWD,fileName));
+        }
+    }
+    private static void writeFiles(TreeMap<String, String> findOnlyGivenCommitTracked){
+        if(findOnlyGivenCommitTracked.isEmpty()){
+            return;
+        }
+        for (String fileName : findOnlyGivenCommitTracked.keySet()) {
+            File file = join(CWD, fileName);
+            if(file.exists()){
+                System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                System.exit(0);
+            }
+            overwriteFiles(findOnlyGivenCommitTracked);
+        }
+    }
     //如果当前分支中有未跟踪的工作文件，并且该文件将被重置覆盖，则打印
     //There is an untracked file in the way; delete it, or add and commit it first.
     private static void filesCheckBeforeCheckOut(String fileName, String commitId) {
