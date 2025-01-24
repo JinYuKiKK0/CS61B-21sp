@@ -435,11 +435,21 @@ public class Repository {
         setBranch(branchName);
         initializeStages();
     }
+    //接下
     //如果当前分支中有未跟踪的工作文件，并且该文件将被重置覆盖，则打印
     //There is an untracked file in the way; delete it, or add and commit it first.
     private static void filesCheckBeforeCheckOut(String fileName, String commitId) {
         boolean isUntracked = !isFileTrackedInCommit(fileName, getTheLatestCommit());
-        boolean willBeOverwritten = isFileTrackedInCommit(fileName, getCommitById(commitId));
+        boolean willBeOverwritten = false;
+        //获取给定分支该文件的blobId，与当前分支的blobId对比
+        TreeMap<String, String> branchFiles = getCommitById(commitId).getBlobsID();
+        TreeMap<String, String> curFiles = getTheLatestCommit().getBlobsID();
+
+        String branchBlobId = branchFiles.get(fileName);
+        String curBlobId = curFiles.get(fileName);
+        if(Objects.equals(branchBlobId,curBlobId)){
+            willBeOverwritten = true;
+        }
         if (isUntracked && willBeOverwritten) {
             System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
             System.exit(0);
@@ -460,15 +470,14 @@ public class Repository {
         for (String fileName : fileNames) {
             filesCheckBeforeCheckOut(fileName, commitId);
         }
-        //restore each file to CWD
+        //把检出分支的每个文件都恢复到CWD
         checkedBranchFiles.forEach((filename, blobId) -> copyBlobToFile(blobId, filename));
         //Remove the unique files from the original branch from the current working directory
         TreeMap<String, String> curCommitFiles = filesTrackedByBranch(getCurrentBranchName());
         Set<String> curCommitFileName = curCommitFiles.keySet();
         curCommitFileName.removeIf(filename -> checkedBranchFiles.keySet().contains(filename));
-        curCommitFileName.forEach(filename -> restrictedDelete(filename));
+        curCommitFileName.forEach(filename -> restrictedDelete(join(CWD,filename)));
     }
-
     /**
      * Find the corresponding file in the branches folder based on the given branchName, and read the CommitId from it
      * Get the commit by CommitId, and retrieve the blobs from the commit. Restore all files from the blobs to the CWD
@@ -635,6 +644,7 @@ public class Repository {
         mergeEasyCase(branchName);
         mergeFilesOperation(getMergeResultFiles(branchName));
         createMergeCommit(branchName);
+        initializeStages();
     }
 
 
@@ -697,9 +707,7 @@ public class Repository {
         //5. split中存在，split == head，other中被移除 ; 从CWD中移除该文件，同时不跟踪(mergeCommit中不包含)
         else if (!headModified && branchDeleted) {
             mergeResult.remove(fileName);
-            if(join(CWD,fileName).exists()){
-                join(CWD,fileName).delete();
-            }
+            restrictedDelete(join(CWD,fileName));
         }
         //6. 与split相比，head与other都以不同方式修改(或移除或修改) ; conflict
         //1.split存在 head修改，other移除
