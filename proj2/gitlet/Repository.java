@@ -438,6 +438,14 @@ public class Repository {
             return;
         }
         //checkout the files of the given commitId
+        String targetCommitId = getBranchCommitId(branchName);
+
+    // 2. 先统一检查：目标commit中即将覆盖或删除的文件是否在当前工作区中且属于“未跟踪”状态
+    //    若发现未跟踪文件会被覆盖或删除，则报错并提前返回
+    if (hasUntrackedConflict(targetCommitId)) {
+        System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+        return;
+    }
         // delete the files unique to the original branch check out files that
         checkoutFilesOperation(getBranchCommitId(branchName));
         //set given branch to the current branch
@@ -521,7 +529,39 @@ public class Repository {
             System.exit(0);
         }
     }
+    private static boolean hasUntrackedConflict(String targetCommitId) {
+    TreeMap<String, String> targetFiles = getCommitById(targetCommitId).getBlobsID();
+    TreeMap<String, String> currentFiles = getTheLatestCommit().getBlobsID();
 
+    // 收集在目标commit里出现，但内容和当前commit里不同，可能要覆盖的文件
+    // 以及当前commit里有但目标commit里没有，可能要删除的文件
+    Set<String> filesToOverwriteOrRemove = new HashSet<>();
+    // 目标commit新增或改动的文件
+    for (String fileName : targetFiles.keySet()) {
+        String targetBlobId = targetFiles.get(fileName);
+        String currentBlobId = currentFiles.get(fileName);
+        // 如果文件在两边commit都存在且blobId不同 => 需要覆盖
+        // 如果文件在目标commit存在，但当前commit不存在 => 也可能覆盖当前工作目录
+        if (currentBlobId == null || !currentBlobId.equals(targetBlobId)) {
+            filesToOverwriteOrRemove.add(fileName);
+        }
+    }
+    // 当前commit有但目标commit没有 => 需要删除
+    for (String fileName : currentFiles.keySet()) {
+        if (!targetFiles.containsKey(fileName)) {
+            filesToOverwriteOrRemove.add(fileName);
+        }
+    }
+
+    // 逐个检测：如果工作目录下存在这些文件且它们在当前commit中未被跟踪 => 触发冲突
+    for (String fileName : filesToOverwriteOrRemove) {
+        File f = join(CWD, fileName);
+        if (f.exists() && !isFileTrackedInCommit(fileName, getTheLatestCommit())) {
+            return true;
+        }
+    }
+    return false;
+}
     /**
      * checkout the files of the given commitId
      * delete the files unique to the original branch check out files that
@@ -534,7 +574,7 @@ public class Repository {
         TreeMap<String, String> onlyCurCommitTracked = findOnlyCurCommitTracked(commitId);
         deleteFiles(onlyCurCommitTracked);
         overwriteFiles(bothCommitTracked);
-        writeFiles(onlyGivenCommitTracked);
+        overwriteFiles(onlyGivenCommitTracked);
     }
     /**
      * Find the corresponding file in the branches folder based on the given branchName, and read the CommitId from it
