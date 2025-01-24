@@ -629,6 +629,12 @@ public class Repository {
             System.out.println("No commit with that id exists.");
             System.exit(0);
         }
+    // 2. 先统一检查：目标commit中即将覆盖或删除的文件是否在当前工作区中且属于“未跟踪”状态
+    //    若发现未跟踪文件会被覆盖或删除，则报错并提前返回
+    if (hasUntrackedConflict(commitId)) {
+        System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+        return;
+    }
         writeContents(HEAD, commitId);
         checkoutFilesOperation(commitId);
         initializeStages();
