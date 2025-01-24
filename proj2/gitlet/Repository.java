@@ -568,9 +568,12 @@ public class Repository {
         String minKey = "";
         int minValue = Integer.MAX_VALUE;
         for (String commitId : headCommitTree.keySet()) {
-            if (givenBranchCommitTree.containsKey(commitId) && headCommitTree.get(commitId) < minValue) {
-                minKey = commitId;
-                minValue = givenBranchCommitTree.get(commitId);
+            if(givenBranchCommitTree.containsKey(commitId)){
+                int sum = headCommitTree.get(commitId) + givenBranchCommitTree.get(commitId);
+                if(sum < minValue || (sum == minValue) && commitId.compareTo(minKey) > 0){
+                    minValue = sum;
+                    minKey = commitId;
+                }
             }
         }
         return minKey;
@@ -601,11 +604,6 @@ public class Repository {
             }
             depth++;
         }
-        /**
-         * depth = 1
-         * queue[2]
-         * marked[4,3]
-         */
     }
 
     private static void mergeEasyCase(String branchName) {
@@ -668,7 +666,8 @@ public class Repository {
     }
 
     private static void fileHandleInSplit(String fileName, String splitBlob, String headBlob,
-                                          String branchBlob, TreeMap<String, String> mergeResult) throws IOException {
+                                          String branchBlob, TreeMap<String, String> mergeResult
+                                            ) throws IOException {
         loadStage();
         boolean headModified = (headBlob != null && Objects.equals(headBlob, splitBlob));
         boolean branchModified = (branchBlob != null && Objects.equals(branchBlob, splitBlob));
@@ -711,6 +710,8 @@ public class Repository {
         } else if ((headModified && branchDeleted) || (headDeleted && branchModified)) {
             conflictHandling(headBlob, branchBlob, fileName);
         }
+        //branch Other : f.txt g.txt 
+        //branch master :
     }
 
     private static void fileHandleNotInSplit(String fileName, String headBlob,
@@ -747,6 +748,7 @@ public class Repository {
             System.exit(0);
         }
     }
+    //将merge结果修改的文件写入CWD
     private static void mergeFilesOperation(TreeMap<String,String> mergeResult){
         for (Map.Entry<String, String> files : mergeResult.entrySet()) {
             String fileName = files.getKey();
