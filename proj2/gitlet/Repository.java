@@ -447,7 +447,7 @@ public class Repository {
 
         String branchBlobId = branchFiles.get(fileName);
         String curBlobId = curFiles.get(fileName);
-        if(Objects.equals(branchBlobId,curBlobId)){
+        if(!Objects.equals(branchBlobId,curBlobId)){
             willBeOverwritten = true;
         }
         if (isUntracked && willBeOverwritten) {
