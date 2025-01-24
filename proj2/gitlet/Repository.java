@@ -530,20 +530,12 @@ public class Repository {
      * @param commitId
      */
     private static void checkoutFilesOperation(String commitId) {
-        //Retrieve all files -> blobs for the commits of the given branch
-        TreeMap<String, String> checkedBranchFiles = filesTrackedByCommit(commitId);
-        //if there are untracked files in current branch and checkout will overwrite them, exit and print err
-        List<String> fileNames = plainFilenamesIn(CWD);
-        for (String fileName : fileNames) {
-            filesCheckBeforeCheckOut(fileName, commitId);
-        }
-        //把检出分支的每个文件都恢复到CWD
-        checkedBranchFiles.forEach((filename, blobId) -> copyBlobToFile(blobId, filename));
-        //Remove the unique files from the original branch from the current working directory
-        TreeMap<String, String> curCommitFiles = filesTrackedByBranch(getCurrentBranchName());
-        Set<String> curCommitFileName = curCommitFiles.keySet();
-        curCommitFileName.removeIf(filename -> checkedBranchFiles.keySet().contains(filename));
-        curCommitFileName.forEach(filename -> restrictedDelete(join(CWD,filename)));
+        TreeMap<String, String> onlyGivenCommitTracked = findOnlyGivenCommitTracked(commitId);
+        TreeMap<String, String> bothCommitTracked = findBothCommitTracked(commitId);
+        TreeMap<String, String> onlyCurCommitTracked = findOnlyCurCommitTracked(commitId);
+        writeFiles(onlyGivenCommitTracked);
+        deleteFiles(onlyCurCommitTracked);
+        overwriteFiles(bothCommitTracked);
     }
     /**
      * Find the corresponding file in the branches folder based on the given branchName, and read the CommitId from it
