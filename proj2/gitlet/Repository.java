@@ -861,7 +861,7 @@ public class Repository {
             , TreeMap<String, String> deleteFiles) {
         for (String writeFileName : writeFiles.keySet()) {
             String blobId = writeFiles.get(writeFileName);
-            Blob blob = readObject(join(CWD, blobId), Blob.class);
+            Blob blob = readObject(join(BLOBS, blobId), Blob.class);
             writeContents(join(CWD, writeFileName), blob.getBytes());
         }
         for (String deleteFileName : deleteFiles.keySet()) {
