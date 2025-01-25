@@ -884,7 +884,7 @@ public class Repository {
         System.out.println("Encountered a merge conflict.");
         String conflictContents = getConflictContents(headBlodId, branchBlobId);
         Blob conflictFileBlob = new Blob(conflictContents.getBytes(StandardCharsets.UTF_8), fileName);
-        saveToFile(conflictFile, conflictFileBlob.getId(), BLOBS);
+        saveToFile(conflictFileBlob, conflictFileBlob.getId(), BLOBS);
         writeFiles.put(fileName, conflictFileBlob.getId());
     }
 
