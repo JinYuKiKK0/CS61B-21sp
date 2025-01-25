@@ -924,7 +924,7 @@ public class Repository {
 
     private static Commit createMergeCommit(String branchName,
                                             TreeMap<String, String> mergeResultFiles) {
-        String msg = "Merged " + getCurrentBranchName() + " into " + branchName + ".";
+        String msg = "Merged " + branchName + " into " + getCurrentBranchName() + ".";
         ArrayList<String> parentsId = new ArrayList<>();
         parentsId.add(getBranchCommitId(branchName));
         parentsId.add(getCurrentBranch());
