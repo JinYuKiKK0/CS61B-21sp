@@ -133,15 +133,16 @@ public class Repository {
         }
     }
 
-    private static Blob getBlobByFileName(String fileName){
+    private static Blob getBlobByFileName(String fileName) {
         for (String blobId : plainFilenamesIn(BLOBS)) {
             Blob blob = readObject(join(BLOBS, blobId), Blob.class);
-            if(fileName.equals(blob.getFileName())){
+            if (fileName.equals(blob.getFileName())) {
                 return blob;
             }
         }
         return null;
     }
+
     public static void add(String fileName) throws IOException {
         isGiltetDirExist();
         if (!isFileExistInGitlet(fileName)) {
@@ -386,6 +387,7 @@ public class Repository {
      * Copy the file with the same name as the commit in the commitId to the current working directory (CWD)
      * overwriting if it already exists
      * 支持短字符
+     *
      * @param commitId
      * @param fileName
      */
@@ -440,19 +442,20 @@ public class Repository {
         //checkout the files of the given commitId
         String targetCommitId = getBranchCommitId(branchName);
 
-    // 2. 先统一检查：目标commit中即将覆盖或删除的文件是否在当前工作区中且属于“未跟踪”状态
-    //    若发现未跟踪文件会被覆盖或删除，则报错并提前返回
-    if (hasUntrackedConflict(targetCommitId)) {
-        System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
-        return;
-    }
+        // 2. 先统一检查：目标commit中即将覆盖或删除的文件是否在当前工作区中且属于“未跟踪”状态
+        //    若发现未跟踪文件会被覆盖或删除，则报错并提前返回
+        if (hasUntrackedConflict(targetCommitId)) {
+            System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+            return;
+        }
         // delete the files unique to the original branch check out files that
         checkoutFilesOperation(getBranchCommitId(branchName));
         //set given branch to the current branch
         setBranch(branchName);
         initializeStages();
     }
-    private static TreeMap<String, String> findOnlyCurCommitTracked(String commitId){
+
+    private static TreeMap<String, String> findOnlyCurCommitTracked(String commitId) {
         TreeMap<String, String> givenFiles = getCommitById(commitId).getBlobsID();
         TreeMap<String, String> curFiles = getTheLatestCommit().getBlobsID();
         for (String fileName : givenFiles.keySet()) {
@@ -460,56 +463,61 @@ public class Repository {
         }
         return curFiles;
     }
+
     private static TreeMap<String, String> findBothCommitTracked(String commitId) {
-    TreeMap<String, String> givenFiles = getCommitById(commitId).getBlobsID();
-    TreeMap<String, String> curFiles = getTheLatestCommit().getBlobsID();
-    TreeMap<String, String> bothTrackedFiles = new TreeMap<>();
-    for (Map.Entry<String, String> entry : givenFiles.entrySet()) {
-        if (curFiles.containsKey(entry.getKey())) {
-            bothTrackedFiles.put(entry.getKey(), entry.getValue());
+        TreeMap<String, String> givenFiles = getCommitById(commitId).getBlobsID();
+        TreeMap<String, String> curFiles = getTheLatestCommit().getBlobsID();
+        TreeMap<String, String> bothTrackedFiles = new TreeMap<>();
+        for (Map.Entry<String, String> entry : givenFiles.entrySet()) {
+            if (curFiles.containsKey(entry.getKey())) {
+                bothTrackedFiles.put(entry.getKey(), entry.getValue());
+            }
         }
+        return bothTrackedFiles;
     }
-    return bothTrackedFiles;
-}
 
     private static TreeMap<String, String> findOnlyGivenCommitTracked(String commitId) {
-    TreeMap<String, String> givenFiles = getCommitById(commitId).getBlobsID();
-    TreeMap<String, String> curFiles = getTheLatestCommit().getBlobsID();
-    TreeMap<String, String> onlyGivenFiles = new TreeMap<>(givenFiles);
-    for (String curFileName : curFiles.keySet()) {
-        onlyGivenFiles.remove(curFileName);
+        TreeMap<String, String> givenFiles = getCommitById(commitId).getBlobsID();
+        TreeMap<String, String> curFiles = getTheLatestCommit().getBlobsID();
+        TreeMap<String, String> onlyGivenFiles = new TreeMap<>(givenFiles);
+        for (String curFileName : curFiles.keySet()) {
+            onlyGivenFiles.remove(curFileName);
+        }
+        return onlyGivenFiles;
     }
-    return onlyGivenFiles;
-}
-    private static void overwriteFiles(TreeMap<String, String> bothTrackedFiles){
-        if(bothTrackedFiles.isEmpty()){
+
+    private static void overwriteFiles(TreeMap<String, String> bothTrackedFiles) {
+        if (bothTrackedFiles.isEmpty()) {
             return;
         }
         for (String fileName : bothTrackedFiles.keySet()) {
-            copyBlobToFile(bothTrackedFiles.get(fileName),fileName);
+            copyBlobToFile(bothTrackedFiles.get(fileName), fileName);
         }
     }
-    private static void deleteFiles(TreeMap<String, String> findOnlyCurCommitTracked){
-        if(findOnlyCurCommitTracked.isEmpty()){
+
+    private static void deleteFiles(TreeMap<String, String> findOnlyCurCommitTracked) {
+        if (findOnlyCurCommitTracked.isEmpty()) {
             return;
         }
         for (String fileName : findOnlyCurCommitTracked.keySet()) {
-            join(CWD,fileName).delete();
+            join(CWD, fileName).delete();
         }
     }
-    private static void writeFiles(TreeMap<String, String> findOnlyGivenCommitTracked){
-        if(findOnlyGivenCommitTracked.isEmpty()){
+
+    private static void writeFiles(TreeMap<String, String> findOnlyGivenCommitTracked) {
+        if (findOnlyGivenCommitTracked.isEmpty()) {
             return;
         }
         for (String fileName : findOnlyGivenCommitTracked.keySet()) {
             File file = join(CWD, fileName);
-            if(file.exists()){
+            if (file.exists()) {
                 System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                 System.exit(0);
             }
             overwriteFiles(findOnlyGivenCommitTracked);
         }
     }
+
     //如果当前分支中有未跟踪的工作文件，并且该文件将被重置覆盖，则打印
     //There is an untracked file in the way; delete it, or add and commit it first.
     private static void filesCheckBeforeCheckOut(String fileName, String commitId) {
@@ -521,7 +529,7 @@ public class Repository {
 
         String branchBlobId = branchFiles.get(fileName);
         String curBlobId = curFiles.get(fileName);
-        if(!Objects.equals(branchBlobId,curBlobId)){
+        if (!Objects.equals(branchBlobId, curBlobId)) {
             willBeOverwritten = true;
         }
         if (isUntracked && willBeOverwritten) {
@@ -529,39 +537,41 @@ public class Repository {
             System.exit(0);
         }
     }
+
     private static boolean hasUntrackedConflict(String targetCommitId) {
-    TreeMap<String, String> targetFiles = getCommitById(targetCommitId).getBlobsID();
-    TreeMap<String, String> currentFiles = getTheLatestCommit().getBlobsID();
+        TreeMap<String, String> targetFiles = getCommitById(targetCommitId).getBlobsID();
+        TreeMap<String, String> currentFiles = getTheLatestCommit().getBlobsID();
 
-    // 收集在目标commit里出现，但内容和当前commit里不同，可能要覆盖的文件
-    // 以及当前commit里有但目标commit里没有，可能要删除的文件
-    Set<String> filesToOverwriteOrRemove = new HashSet<>();
-    // 目标commit新增或改动的文件
-    for (String fileName : targetFiles.keySet()) {
-        String targetBlobId = targetFiles.get(fileName);
-        String currentBlobId = currentFiles.get(fileName);
-        // 如果文件在两边commit都存在且blobId不同 => 需要覆盖
-        // 如果文件在目标commit存在，但当前commit不存在 => 也可能覆盖当前工作目录
-        if (currentBlobId == null || !currentBlobId.equals(targetBlobId)) {
-            filesToOverwriteOrRemove.add(fileName);
+        // 收集在目标commit里出现，但内容和当前commit里不同，可能要覆盖的文件
+        // 以及当前commit里有但目标commit里没有，可能要删除的文件
+        Set<String> filesToOverwriteOrRemove = new HashSet<>();
+        // 目标commit新增或改动的文件
+        for (String fileName : targetFiles.keySet()) {
+            String targetBlobId = targetFiles.get(fileName);
+            String currentBlobId = currentFiles.get(fileName);
+            // 如果文件在两边commit都存在且blobId不同 => 需要覆盖
+            // 如果文件在目标commit存在，但当前commit不存在 => 也可能覆盖当前工作目录
+            if (currentBlobId == null || !currentBlobId.equals(targetBlobId)) {
+                filesToOverwriteOrRemove.add(fileName);
+            }
         }
-    }
-    // 当前commit有但目标commit没有 => 需要删除
-    for (String fileName : currentFiles.keySet()) {
-        if (!targetFiles.containsKey(fileName)) {
-            filesToOverwriteOrRemove.add(fileName);
+        // 当前commit有但目标commit没有 => 需要删除
+        for (String fileName : currentFiles.keySet()) {
+            if (!targetFiles.containsKey(fileName)) {
+                filesToOverwriteOrRemove.add(fileName);
+            }
         }
+
+        // 逐个检测：如果工作目录下存在这些文件且它们在当前commit中未被跟踪 => 触发冲突
+        for (String fileName : filesToOverwriteOrRemove) {
+            File f = join(CWD, fileName);
+            if (f.exists() && !isFileTrackedInCommit(fileName, getTheLatestCommit())) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    // 逐个检测：如果工作目录下存在这些文件且它们在当前commit中未被跟踪 => 触发冲突
-    for (String fileName : filesToOverwriteOrRemove) {
-        File f = join(CWD, fileName);
-        if (f.exists() && !isFileTrackedInCommit(fileName, getTheLatestCommit())) {
-            return true;
-        }
-    }
-    return false;
-}
     /**
      * checkout the files of the given commitId
      * delete the files unique to the original branch check out files that
@@ -576,6 +586,7 @@ public class Repository {
         overwriteFiles(bothCommitTracked);
         overwriteFiles(onlyGivenCommitTracked);
     }
+
     /**
      * Find the corresponding file in the branches folder based on the given branchName, and read the CommitId from it
      * Get the commit by CommitId, and retrieve the blobs from the commit. Restore all files from the blobs to the CWD
@@ -615,7 +626,7 @@ public class Repository {
         } else if (!plainFilenamesIn(BRANCHES).contains(branchName)) {
             System.out.println("A branch with that name does not exist.");
         } else {
-            if(join(BRANCHES, branchName).exists()){
+            if (join(BRANCHES, branchName).exists()) {
                 join(BRANCHES, branchName).delete();
             }
         }
@@ -629,12 +640,12 @@ public class Repository {
             System.out.println("No commit with that id exists.");
             System.exit(0);
         }
-    // 2. 先统一检查：目标commit中即将覆盖或删除的文件是否在当前工作区中且属于“未跟踪”状态
-    //    若发现未跟踪文件会被覆盖或删除，则报错并提前返回
-    if (hasUntrackedConflict(commitId)) {
-        System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
-        return;
-    }
+        // 2. 先统一检查：目标commit中即将覆盖或删除的文件是否在当前工作区中且属于“未跟踪”状态
+        //    若发现未跟踪文件会被覆盖或删除，则报错并提前返回
+        if (hasUntrackedConflict(commitId)) {
+            System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+            return;
+        }
         writeContents(HEAD, commitId);
         checkoutFilesOperation(commitId);
         initializeStages();
@@ -681,9 +692,9 @@ public class Repository {
         String minKey = "";
         int minValue = Integer.MAX_VALUE;
         for (String commitId : headCommitTree.keySet()) {
-            if(givenBranchCommitTree.containsKey(commitId)){
+            if (givenBranchCommitTree.containsKey(commitId)) {
                 int sum = headCommitTree.get(commitId) + givenBranchCommitTree.get(commitId);
-                if(sum < minValue || (sum == minValue) && commitId.compareTo(minKey) > 0){
+                if (sum < minValue || (sum == minValue) && commitId.compareTo(minKey) > 0) {
                     minValue = sum;
                     minKey = commitId;
                 }
@@ -746,128 +757,109 @@ public class Repository {
     public static void merge(String branchName) throws IOException {
         sanityCheckBeforeMerge(branchName);
         mergeEasyCase(branchName);
-        mergeFilesOperation(getMergeResultFiles(branchName));
-        createMergeCommit(branchName);
+        TreeMap<String, String> mergeResultFiles = getMergeResultFiles(branchName);
+        createMergeCommit(branchName,mergeResultFiles);
         initializeStages();
     }
 
-
-    /**
-     * @param branchName
-     * @return
-     *///TODO:暂存的目的是使得创建合并提交时从暂存区获得需要跟踪的文件
-    private static TreeMap<String, String> getMergeResultFiles(String branchName) throws IOException {
-        TreeMap<String, String> branchFiles = getBranchCommit(branchName).getBlobsID();
+    private static TreeMap<String,String> getMergeResultFiles(String branchName) throws IOException {
         TreeMap<String, String> splitFiles = getCommitById(findSplitPointId(branchName)).getBlobsID();
-        TreeMap<String, String> headFiles = getTheLatestCommit().getBlobsID();
-        TreeMap<String, String> mergeFiles = new TreeMap<>();
-        HashSet<String> allFiles = new HashSet<>();
-        allFiles.addAll(splitFiles.keySet());
-        allFiles.addAll(headFiles.keySet());
-        allFiles.addAll(branchFiles.keySet());
-        for (String fileName : allFiles) {
-            String splitBlobId = splitFiles.get(fileName);
-            String headBlobId = headFiles.get(fileName);
-            String branchBlobId = branchFiles.get(fileName);
-            checkBeforeMergeFile(fileName,mergeFiles);
+        TreeMap<String, String> branchFiles = getBranchCommit(branchName).getBlobsID();
+        TreeMap<String, String> curFiles = getTheLatestCommit().getBlobsID();
+        TreeMap<String, String> writeFiles = new TreeMap<>();
+        TreeMap<String, String> deleteFiles = new TreeMap<>();
+        Set<String> allFileNames = new HashSet<>();
+        allFileNames.addAll(splitFiles.keySet());
+        allFileNames.addAll(branchFiles.keySet());
+        allFileNames.addAll(curFiles.keySet());
+        for (String allFileName : allFileNames) {
+            String splitBlobId = splitFiles.get(allFileName);
             if (splitBlobId != null) {
-                fileHandleInSplit(fileName, splitBlobId, headBlobId, branchBlobId, mergeFiles);
-            } else {
-                fileHandleNotInSplit(fileName, headBlobId, branchBlobId, mergeFiles);
+                filesInSplit(allFileName,splitBlobId,curFiles.get(allFileName)
+                        ,branchFiles.get(allFileName),writeFiles,deleteFiles);
+            }else {
+                filesNotInSplit(allFileName,curFiles.get(allFileName)
+                        ,branchFiles.get(allFileName)
+                        ,writeFiles);
             }
         }
-        return mergeFiles;
+        TreeMap<String,String> mergeResultFiles = new TreeMap<>();
+        mergeResultFiles.putAll(writeFiles);
+        for (String deleteFileName : deleteFiles.keySet()) {
+            if(mergeResultFiles.containsKey(deleteFileName)){
+                mergeResultFiles.remove(deleteFileName);
+            }
+        }
+        mergeFilesOperation(writeFiles,deleteFiles);
+        return mergeResultFiles;
     }
 
-    private static void fileHandleInSplit(String fileName, String splitBlob, String headBlob,
-                                          String branchBlob, TreeMap<String, String> mergeResult
-                                            ) throws IOException {
-        loadStage();
-        boolean headModified = (headBlob != null && Objects.equals(headBlob, splitBlob));
-        boolean branchModified = (branchBlob != null && Objects.equals(branchBlob, splitBlob));
-        boolean headDeleted = (headBlob == null);
-        boolean branchDeleted = (branchBlob == null);
-        //1. split中存在，split == head , other修改 ; 检出至other中版本并暂存以供提交
+    //对split中存在的文件进行操作,将最终结果fileName -> blobId 写入TreeMap files
+    private static void filesInSplit(String fileName, String splitBlobId,
+                                     String headBlobId, String branchBlobId,
+                                     TreeMap<String, String> writeFiles,
+                                     TreeMap<String, String> deleteFiles) throws IOException {
+        boolean headModified = (headBlobId != null) && (!headBlobId.equals(splitBlobId));
+        boolean branchModified = (branchBlobId != null) && (!branchBlobId.equals(splitBlobId));
+        boolean headDeleted = headBlobId == null;
+        boolean branchDeleted = branchBlobId == null;
+
+        if (headModified && !branchModified) {
+            writeFiles.put(fileName, headBlobId);
+        }
         if (!headModified && branchModified) {
-            mergeResult.put(fileName, branchBlob);
-            addStageMap.stageSave(fileName, branchBlob);
+            writeFiles.put(fileName, branchBlobId);
         }
-        //2. split中存在，split == other , head修改 ; 保持head原样
-        else if (!branchModified && headModified) {
-            mergeResult.put(fileName, headBlob);
+        if ((headModified && branchModified) && headBlobId.equals(branchBlobId)) {
+            writeFiles.put(fileName, headBlobId);
         }
-        //3. 与split相比,head与other 都以相同方式修改(修改或移除) ; 保持原样
-        //如果head & other都移除了该文件,而CWD中存在同名文件，合并后依然缺省(既不暂存也不追踪)
-        else if ((headModified && branchModified && headBlob.equals(branchBlob))
-                || (headDeleted && branchDeleted)) {
-            if (headBlob != null) {
-                mergeResult.put(fileName, headBlob);
-            }
+        if (headDeleted && branchDeleted) {
+            deleteFiles.put(fileName, "delete");
         }
-        //4. split中存在，split == other，head中被移除 ; 保持被移除的状态
-        else if (!branchModified && headDeleted) {
-            mergeResult.remove(fileName);
+        if (headDeleted && !branchModified) {
+            deleteFiles.put(fileName, "delete");
         }
-        //5. split中存在，split == head，other中被移除 ; 从CWD中移除该文件，同时不跟踪(mergeCommit中不包含)
-        else if (!headModified && branchDeleted) {
-            mergeResult.remove(fileName);
-            restrictedDelete(join(CWD,fileName));
+        if (headModified && branchModified && !headBlobId.equals(branchBlobId)) {
+            conflictHandling(headBlobId, branchBlobId, fileName,writeFiles);
         }
-        //6. 与split相比，head与other都以不同方式修改(或移除或修改) ; conflict
-        //1.split存在 head修改，other移除
-        //2.split存在 other修改，head移除
-        //3.文件在split缺失，head与other有不同内容
-        else if (headModified && branchModified && !headBlob.equals(branchBlob)) {
-            conflictHandling(headBlob, branchBlob, fileName);
-        } else if ((headModified && branchDeleted) || (headDeleted && branchModified)) {
-            conflictHandling(headBlob, branchBlob, fileName);
+        if (headModified && branchDeleted) {
+            conflictHandling(headBlobId, null, fileName,writeFiles);
         }
-        //branch Other : f.txt g.txt 
-        //branch master :
-    }
-
-    private static void fileHandleNotInSplit(String fileName, String headBlob,
-                                             String branchBlob, TreeMap<String, String> mergeResult) throws IOException {
-        boolean headHas = (headBlob != null);
-        boolean branchHas = (branchBlob != null);
-        //7. split与head中不存在，仅存在于other ; 合并后应该检出至other版本，并将该文件暂存以便创建合并提交时包含该文件
-        //8. split与other中不存在，仅存在于head ; 合并后仍然存在
-        if (headHas && branchHas) {
-            // 双方都新增该文件
-            if (headBlob.equals(branchBlob)) {
-                // 内容相同 → 正常合并
-                mergeResult.put(fileName, headBlob);
-            } else {
-                // 内容不同 → 冲突
-                conflictHandling(fileName, headBlob, branchBlob);
-            }
-        } else if (headHas) {
-            // 仅在Head新增 → 保留
-            mergeResult.put(fileName, headBlob);
-        } else if (branchHas) {
-            // 仅在Other新增 → 保留
-            mergeResult.put(fileName, branchBlob);
+        if (branchModified && headDeleted) {
+            conflictHandling(null, branchBlobId, fileName,writeFiles);
         }
     }
+    private static void filesNotInSplit(String fileName,
+                                     String headBlobId, String branchBlobId,
+                                     TreeMap<String, String> writeFiles) throws IOException {
+        boolean headDeleted = headBlobId == null;
+        boolean branchDeleted = branchBlobId == null;
 
-    //如果当前提交中的未跟踪文件将被合并覆盖或删除，打印
-    //There is an untracked file in the way; delete it, or add and commit it first.并退出
-    private static void checkBeforeMergeFile(String fileName, TreeMap<String, String> resultFiles) {
-        boolean isUntracked = !isFileTrackedInCommit(fileName, getTheLatestCommit());
-        boolean isOverWritten = resultFiles.containsKey(fileName);
-        if (isUntracked && isOverWritten) {
-            System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
-            System.exit(0);
+        if(branchDeleted && !headDeleted){
+            writeFiles.put(fileName,headBlobId);
+        }
+        if(!branchDeleted && headDeleted){
+            writeFiles.put(fileName,branchBlobId);
+        }
+        if(!headBlobId.equals(branchBlobId)){
+            conflictHandling(headBlobId,branchBlobId,fileName,writeFiles);
         }
     }
     //将merge结果修改的文件写入CWD
-    private static void mergeFilesOperation(TreeMap<String,String> mergeResult){
-        for (Map.Entry<String, String> files : mergeResult.entrySet()) {
-            String fileName = files.getKey();
-            String contents = files.getValue();
-            writeContents(join(CWD,fileName),contents);
+    private static void mergeFilesOperation(TreeMap<String, String> writeFiles
+            ,TreeMap<String, String>  deleteFiles) {
+        for (String writeFileName : writeFiles.keySet()) {
+            String blobId = writeFiles.get(writeFileName);
+            Blob blob = readObject(join(CWD, blobId), Blob.class);
+            writeContents(join(CWD,writeFileName), blob.getBytes());
+        }
+        for (String deleteFileName : deleteFiles.keySet()) {
+            if(join(CWD,deleteFileName).exists()){
+                join(CWD,deleteFileName).delete();
+            }
         }
     }
+
     /**
      * 接收head分支与branch分支的内容，
      * 构成如下形式：
@@ -878,14 +870,13 @@ public class Repository {
      * >>>>>>>
      * 将该内容重新写回文件
      */
-    private static void conflictHandling(String headBlodId, String branchBlobId, String fileName) throws IOException {
+    private static void conflictHandling(String headBlodId, String branchBlobId, String fileName,TreeMap<String, String> writeFiles) throws IOException {
         loadStage();
         System.out.println("Encountered a merge conflict.");
         String conflictContents = getConflictContents(headBlodId, branchBlobId);
         Blob conflictFile = new Blob(conflictContents.getBytes(StandardCharsets.UTF_8), fileName);
         saveToFile(conflictFile, fileName, BLOBS);
-        addStageMap.stageSave(fileName, conflictFile.getId());
-        writeContents(join(CWD, fileName), conflictContents);
+        writeFiles.put(fileName,conflictFile.getId());
     }
 
     private static String getConflictContents(String headBlodId, String branchBlobId) {
@@ -916,8 +907,9 @@ public class Repository {
         }
     }
 
-    private static Commit createMergeCommit(String branchName) throws IOException {
-        TreeMap<String, String> mergeResultFiles = getMergeResultFiles(branchName);
+    private static Commit createMergeCommit(String branchName,
+                                            TreeMap<String,String> mergeResultFiles)
+                                            throws IOException {
         String msg = "Merged " + getCurrentBranchName() + " into " + branchName + ".";
         ArrayList<String> parentsId = new ArrayList<>();
         parentsId.add(getBranchCommitId(branchName));
