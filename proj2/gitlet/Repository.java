@@ -538,10 +538,8 @@ public class Repository {
         }
     }
 
-    private static boolean hasUntrackedConflict(String targetCommitId) {
-        TreeMap<String, String> targetFiles = getCommitById(targetCommitId).getBlobsID();
+    private static boolean hasUntrackedConflict(TreeMap<String, String> targetFiles){
         TreeMap<String, String> currentFiles = getTheLatestCommit().getBlobsID();
-
         // 收集在目标commit里出现，但内容和当前commit里不同，可能要覆盖的文件
         // 以及当前commit里有但目标commit里没有，可能要删除的文件
         Set<String> filesToOverwriteOrRemove = new HashSet<>();
@@ -561,7 +559,6 @@ public class Repository {
                 filesToOverwriteOrRemove.add(fileName);
             }
         }
-
         // 逐个检测：如果工作目录下存在这些文件且它们在当前commit中未被跟踪 => 触发冲突
         for (String fileName : filesToOverwriteOrRemove) {
             File f = join(CWD, fileName);
@@ -570,6 +567,9 @@ public class Repository {
             }
         }
         return false;
+    }
+    private static boolean hasUntrackedConflict(String targetCommitId) {
+        return hasUntrackedConflict(getCommitById(targetCommitId).getBlobsID());
     }
 
     /**
@@ -758,7 +758,8 @@ public class Repository {
         sanityCheckBeforeMerge(branchName);
         mergeEasyCase(branchName);
         TreeMap<String, String> mergeResultFiles = getMergeResultFiles(branchName);
-        createMergeCommit(branchName,mergeResultFiles);
+        Commit mergeCommit = createMergeCommit(branchName, mergeResultFiles);
+        writeObject(join(COMMITS,mergeCommit.getId()),mergeCommit);
         initializeStages();
     }
 
@@ -789,6 +790,10 @@ public class Repository {
             if(mergeResultFiles.containsKey(deleteFileName)){
                 mergeResultFiles.remove(deleteFileName);
             }
+        }
+        if(hasUntrackedConflict(mergeResultFiles)){
+            System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+            System.exit(0);
         }
         mergeFilesOperation(writeFiles,deleteFiles);
         return mergeResultFiles;
@@ -908,8 +913,7 @@ public class Repository {
     }
 
     private static Commit createMergeCommit(String branchName,
-                                            TreeMap<String,String> mergeResultFiles)
-                                            throws IOException {
+                                            TreeMap<String,String> mergeResultFiles) {
         String msg = "Merged " + getCurrentBranchName() + " into " + branchName + ".";
         ArrayList<String> parentsId = new ArrayList<>();
         parentsId.add(getBranchCommitId(branchName));
