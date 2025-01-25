@@ -101,8 +101,8 @@ public class Repository {
 
     public static void init() throws IOException {
         if (GITLET_DIR.exists()) {
-            System.out.println("A Gitlet version-control system already " +
-                    "exists in the current directory.");
+            System.out.println("A Gitlet version-control system already "
+                    + "exists in the current directory.");
             System.exit(0);
         }
         createDirectoriesAndFiles();
@@ -193,7 +193,7 @@ public class Repository {
      * rm FILES
      * 1. files neither staged nor tracked by HEAD commit , print err
      * 2. files tracked    staged for removal , delete from CWD ,
-     *    display section "Removed Files" in status command
+     * display section "Removed Files" in status command
      * 3. files staged  remove it from addStage
      *
      * @param fileName
@@ -451,8 +451,8 @@ public class Repository {
         // 2. 先统一检查：目标commit中即将覆盖或删除的文件是否在当前工作区中且属于“未跟踪”状态
         //    若发现未跟踪文件会被覆盖或删除，则报错并提前返回
         if (hasUntrackedConflict(targetCommitId)) {
-            System.out.println("There is an untracked file in the way; " +
-                    "delete it, or add and commit it first.");
+            System.out.println("There is an untracked file in the way; "
+                    + "delete it, or add and commit it first.");
             return;
         }
         // delete the files unique to the original branch check out files that
@@ -510,6 +510,7 @@ public class Repository {
             join(CWD, fileName).delete();
         }
     }
+
     //判断当前分支是否有未跟踪的文件，且该文件将被给定文件集所覆盖或删除
     private static boolean hasUntrackedConflict(TreeMap<String, String> targetFiles) {
         TreeMap<String, String> currentFiles = getTheLatestCommit().getBlobsID();
@@ -545,20 +546,26 @@ public class Repository {
     private static boolean hasUntrackedConflict(String targetCommitId) {
         TreeMap<String, String> targetFiles = getCommitById(targetCommitId).getBlobsID();
         TreeMap<String, String> currentFiles = getTheLatestCommit().getBlobsID();
-        // 收集在目标commit里出现，但内容和当前commit里不同，可能要覆盖的文件
-        // 以及当前commit里有但目标commit里没有，可能要删除的文件
+        // Collect files that might be overwritten or removed
         Set<String> filesToOverwriteOrRemove = new HashSet<>();
-        // 目标commit新增或改动的文件
+
+        // Potentially overwritten files: appear in target commit, differ from current commit
         for (String fileName : targetFiles.keySet()) {
             String targetBlobId = targetFiles.get(fileName);
             String currentBlobId = currentFiles.get(fileName);
-            // 如果文件在两边commit都存在且blobId不同 => 需要覆盖
-            // 如果文件在目标commit存在，但当前commit不存在 => 也可能覆盖当前工作目录
             if (currentBlobId == null || !currentBlobId.equals(targetBlobId)) {
                 filesToOverwriteOrRemove.add(fileName);
             }
         }
-        // 逐个检测：如果工作目录下存在这些文件且它们在当前commit中未被跟踪 => 触发冲突
+
+        // Potentially removed files: appear in current commit but not in target commit
+        for (String fileName : currentFiles.keySet()) {
+            if (!targetFiles.containsKey(fileName)) {
+                filesToOverwriteOrRemove.add(fileName);
+            }
+        }
+        // Only flag as a conflict if the file is untracked in the current commit, exists in the working directory,
+        // and is actually going to be overwritten or removed (i.e., it’s in filesToOverwriteOrRemove).
         for (String fileName : filesToOverwriteOrRemove) {
             File f = join(CWD, fileName);
             if (f.exists() && !isFileTrackedInCommit(fileName, getTheLatestCommit())) {
@@ -641,8 +648,8 @@ public class Repository {
         // 2. 先统一检查：目标commit中即将覆盖或删除的文件是否在当前工作区中且属于“未跟踪”状态
         //    若发现未跟踪文件会被覆盖或删除，则报错并提前返回
         if (hasUntrackedConflict(commitId)) {
-            System.out.println("There is an untracked file in the way; " +
-                    "delete it, or add and commit it first.");
+            System.out.println("There is an untracked file in the way; "
+                    + "delete it, or add and commit it first.");
             return;
         }
         writeContents(HEAD, commitId);
@@ -695,8 +702,8 @@ public class Repository {
         int minValue = Integer.MAX_VALUE;
         for (String commitId : headCommitTree.keySet()) {
             if (givenBranchCommitTree.containsKey(commitId)) {
-                int sum = headCommitTree.get(commitId) +
-                        givenBranchCommitTree.get(commitId);
+                int sum = headCommitTree.get(commitId)
+                        + givenBranchCommitTree.get(commitId);
                 if (sum < minValue || (sum == minValue) && commitId.compareTo(minKey) > 0) {
                     minValue = sum;
                     minKey = commitId;
@@ -772,8 +779,10 @@ public class Repository {
         initializeStages();
     }
 
-    private static TreeMap<String, String> getMergeResultFiles(String branchName) throws IOException {
-        TreeMap<String, String> splitFiles = getCommitById(findSplitPointId(branchName)).getBlobsID();
+    private static TreeMap<String, String> getMergeResultFiles(String branchName)
+            throws IOException {
+        TreeMap<String, String> splitFiles =
+                getCommitById(findSplitPointId(branchName)).getBlobsID();
         TreeMap<String, String> branchFiles = getBranchCommit(branchName).getBlobsID();
         TreeMap<String, String> curFiles = getTheLatestCommit().getBlobsID();
         TreeMap<String, String> writeFiles = new TreeMap<>();
@@ -800,8 +809,8 @@ public class Repository {
             }
         }
         if (hasUntrackedConflict(mergeResultFiles)) {
-            System.out.println("There is an untracked file in the way; " +
-                    "delete it, or add and commit it first.");
+            System.out.println("There is an untracked file in the way; "
+                    + "delete it, or add and commit it first.");
             System.exit(0);
         }
         mergeFilesOperation(writeFiles, deleteFiles);
@@ -890,7 +899,8 @@ public class Repository {
                                          TreeMap<String, String> writeFiles) throws IOException {
         System.out.println("Encountered a merge conflict.");
         String conflictContents = getConflictContents(headBlodId, branchBlobId);
-        Blob conflictFileBlob = new Blob(conflictContents.getBytes(StandardCharsets.UTF_8), fileName);
+        Blob conflictFileBlob = new Blob(conflictContents.
+                getBytes(StandardCharsets.UTF_8), fileName);
         saveToFile(conflictFileBlob, conflictFileBlob.getId(), BLOBS);
         writeFiles.put(fileName, conflictFileBlob.getId());
     }
