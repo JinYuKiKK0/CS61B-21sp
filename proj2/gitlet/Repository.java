@@ -760,7 +760,7 @@ public class Repository {
         mergeEasyCase(branchName);
         TreeMap<String, String> mergeResultFiles = getMergeResultFiles(branchName);
         Commit mergeCommit = createMergeCommit(branchName, mergeResultFiles);
-        saveToFile(mergeCommit,mergeCommit.getId(),COMMITS);
+        saveToFile(mergeCommit, mergeCommit.getId(), COMMITS);
         pointerAdvance(mergeCommit);
         initializeStages();
     }
@@ -876,23 +876,35 @@ public class Repository {
         }
     }
 
-    /**
-     * 接收head分支与branch分支的内容，
-     * 构成如下形式：
-     * <<<<<<< HEAD
-     * contents of file in current branch
-     * =======
-     * contents of file in given branch
-     * >>>>>>>
-     * 将该内容重新写回文件
-     */
-    private static void conflictHandling(String headBlodId, String branchBlobId, String fileName, TreeMap<String, String> writeFiles) throws IOException {
-        loadStage();
+    //若f.txt文件发生冲突，那么head分支所指向的文件保持f.txt不变，而other分支所指向的文件将冲突内容写入
+    private static void conflictHandling(String headBlodId,
+                                         String branchBlobId,
+                                         String fileName,
+                                         TreeMap<String, String> writeFiles) throws IOException {
         System.out.println("Encountered a merge conflict.");
+        //让f.txt文件保持原样
+        if (headBlodId != null) {
+            Blob headBlob = readObject(join(BLOBS, headBlodId), Blob.class);
+            writeContents(join(CWD, fileName), headBlob.getBytes());
+        } else {
+            join(CWD, fileName).delete();
+            writeContents(join(CWD, fileName), new byte[0]);
+        }
+        File conflictFile = join(CWD, "conflict1.txt");
+        if (branchBlobId != null) {
+            Blob branchBlob = readObject(join(BLOBS, branchBlobId), Blob.class);
+            writeContents(conflictFile, branchBlob.getBytes());
+        } else {
+            // If other branch’s file was deleted, just create an empty conflict file
+            if (conflictFile.exists()) {
+                conflictFile.delete();
+            }
+            writeContents(conflictFile, new byte[0]);
+        }
         String conflictContents = getConflictContents(headBlodId, branchBlobId);
-        Blob conflictFile = new Blob(conflictContents.getBytes(StandardCharsets.UTF_8), fileName);
-        saveToFile(conflictFile,conflictFile.getId(), BLOBS);
-        writeFiles.put(fileName, conflictFile.getId());
+        Blob conflictFileBlob = new Blob(conflictContents.getBytes(StandardCharsets.UTF_8), fileName);
+        saveToFile(conflictFile, conflictFileBlob.getId(), BLOBS);
+        writeFiles.put(fileName, conflictFileBlob.getId());
     }
 
     private static String getConflictContents(String headBlodId, String branchBlobId) {
