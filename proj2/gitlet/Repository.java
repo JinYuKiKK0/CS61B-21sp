@@ -760,7 +760,8 @@ public class Repository {
         mergeEasyCase(branchName);
         TreeMap<String, String> mergeResultFiles = getMergeResultFiles(branchName);
         Commit mergeCommit = createMergeCommit(branchName, mergeResultFiles);
-        writeObject(join(COMMITS, mergeCommit.getId()), mergeCommit);
+        saveToFile(mergeCommit,mergeCommit.getId(),COMMITS);
+        pointerAdvance(mergeCommit);
         initializeStages();
     }
 
