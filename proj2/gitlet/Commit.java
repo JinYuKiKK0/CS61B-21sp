@@ -45,7 +45,8 @@ public class Commit implements Serializable {
         id = generateID();
     }
 
-    public Commit(String commitMessage, ArrayList<String> parentsID, TreeMap<String, String> result) {
+    public Commit(String commitMessage, ArrayList<String> parentsID,
+                  TreeMap<String, String> result) {
         message = commitMessage;
         this.parentsID = parentsID;
         blobsID = result;
@@ -126,7 +127,7 @@ public class Commit implements Serializable {
         List<String> commitFiles = plainFilenamesIn(COMMITS);
         String foundFile = null;
         //short uid
-        if (commitId.length() < 40) {
+        if (commitId.length() < commitFiles.get(0).length()) {
             for (String commitid : commitFiles) {
                 if (commitid.length() < commitId.length()) {
                     continue;

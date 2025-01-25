@@ -1,7 +1,5 @@
 package gitlet;
 
-import com.sun.source.tree.Tree;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -81,8 +79,8 @@ public class Repository {
         writeStage();
     }
 
-    private static <T extends Serializable> void saveToFile
-            (T object, String fileName, File parentDIR)
+    private static <T extends Serializable> void saveToFile(T object, String fileName,
+                                                            File parentDIR)
             throws IOException {
         File saveFile = join(parentDIR, fileName);
         saveFile.createNewFile();
@@ -217,10 +215,10 @@ public class Repository {
 
 
     //Synchronizing staged area information to Commit blobs
-    private static void stageToCommitBlobsID(Stage add_Stage_Map, Stage remove_Stage_Map,
+    private static void stageToCommitBlobsID(Stage addStage, Stage removeStage,
                                              TreeMap<String, String> commitBlobsID) {
-        add_Stage_Map.forEach((fileName, blobID) -> commitBlobsID.put(fileName, blobID));
-        remove_Stage_Map.forEach((fileName, blobID) -> commitBlobsID.remove(fileName));
+        addStage.forEach((fileName, blobID) -> commitBlobsID.put(fileName, blobID));
+        removeStage.forEach((fileName, blobID) -> commitBlobsID.remove(fileName));
     }
 
     //Create a new commit based on the staging area information
@@ -687,8 +685,8 @@ public class Repository {
         HashMap<String, Integer> headCommitTree = new HashMap<>();
         HashMap<String, Integer> givenBranchCommitTree = new HashMap<>();
 
-        BFS(headCommitId, headCommitTree);
-        BFS(givenBranchCommitId, givenBranchCommitTree);
+        breadthFirstSearch(headCommitId, headCommitTree);
+        breadthFirstSearch(givenBranchCommitId, givenBranchCommitTree);
 
         String minKey = "";
         int minValue = Integer.MAX_VALUE;
@@ -704,7 +702,7 @@ public class Repository {
         return minKey;
     }
 
-    private static void BFS(String commitId, HashMap<String, Integer> commitTree) {
+    private static void breadthFirstSearch(String commitId, HashMap<String, Integer> commitTree) {
         Queue<String> queue = new LinkedList<>();
         Set<String> marked = new HashSet<>();
 
@@ -778,12 +776,11 @@ public class Repository {
         for (String allFileName : allFileNames) {
             String splitBlobId = splitFiles.get(allFileName);
             if (splitBlobId != null) {
-                filesInSplit(allFileName, splitBlobId, curFiles.get(allFileName)
-                        , branchFiles.get(allFileName), writeFiles, deleteFiles);
+                filesInSplit(allFileName, splitBlobId, curFiles.get(allFileName),
+                        branchFiles.get(allFileName), writeFiles, deleteFiles);
             } else {
-                filesNotInSplit(allFileName, curFiles.get(allFileName)
-                        , branchFiles.get(allFileName)
-                        , writeFiles);
+                filesNotInSplit(allFileName, curFiles.get(allFileName),
+                        branchFiles.get(allFileName), writeFiles);
             }
         }
         TreeMap<String, String> mergeResultFiles = new TreeMap<>();
@@ -862,11 +859,11 @@ public class Repository {
     }
 
     //将merge结果修改的文件写入CWD
-    private static void mergeFilesOperation(TreeMap<String, String> writeFiles
-            , TreeMap<String, String> deleteFiles) {
+    private static void mergeFilesOperation(TreeMap<String, String> writeFiles,
+                                            TreeMap<String, String> deleteFiles) {
         for (String writeFileName : writeFiles.keySet()) {
             String blobId = writeFiles.get(writeFileName);
-            Blob blob = readObject(join(BLOBS, blobId), Blob.class);//FIXME:conflict后产生的blob未持久化，导致读取blob失败
+            Blob blob = readObject(join(BLOBS, blobId), Blob.class);
             writeContents(join(CWD, writeFileName), blob.getBytes());
         }
         for (String deleteFileName : deleteFiles.keySet()) {

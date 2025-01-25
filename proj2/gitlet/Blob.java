@@ -32,7 +32,7 @@ public class Blob implements Serializable {
         return !Arrays.equals(this.bytes, readContents);
     }
 
-    public boolean isContentChanged(Blob blob){
+    public boolean isContentChanged(Blob blob)  {
         return !id.equals(blob.getId());
     }
 }
