@@ -885,6 +885,7 @@ public class Repository {
         //让f.txt文件保持原样
         if (headBlodId != null) {
             Blob headBlob = readObject(join(BLOBS, headBlodId), Blob.class);
+            saveToFile(headBlob,fileName,BLOBS);
             writeContents(join(CWD, fileName), headBlob.getBytes());
         } else {
             join(CWD, fileName).delete();
@@ -893,6 +894,7 @@ public class Repository {
         File conflictFile = join(CWD, "conflict1.txt");
         if (branchBlobId != null) {
             Blob branchBlob = readObject(join(BLOBS, branchBlobId), Blob.class);
+            saveToFile(branchBlob,fileName,BLOBS);
             writeContents(conflictFile, branchBlob.getBytes());
         } else {
             // If other branch’s file was deleted, just create an empty conflict file
