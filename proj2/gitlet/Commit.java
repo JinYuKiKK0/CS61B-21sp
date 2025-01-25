@@ -69,7 +69,7 @@ public class Commit implements Serializable {
         blobsID = file2blob;
     }
 
-    //FIXME:before merge
+
     public void setParent(String parentID) {
         this.parentsID.add(parentID);
     }

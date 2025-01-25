@@ -920,8 +920,8 @@ public class Repository {
                                             TreeMap<String, String> mergeResultFiles) {
         String msg = "Merged " + branchName + " into " + getCurrentBranchName() + ".";
         ArrayList<String> parentsId = new ArrayList<>();
-        parentsId.add(getBranchCommitId(branchName));
         parentsId.add(getCurrentBranch());
+        parentsId.add(getBranchCommitId(branchName));
         return new Commit(msg, parentsId, mergeResultFiles);
     }
 }
