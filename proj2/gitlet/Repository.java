@@ -882,27 +882,6 @@ public class Repository {
                                          String fileName,
                                          TreeMap<String, String> writeFiles) throws IOException {
         System.out.println("Encountered a merge conflict.");
-        //让f.txt文件保持原样
-        if (headBlodId != null) {
-            Blob headBlob = readObject(join(BLOBS, headBlodId), Blob.class);
-            saveToFile(headBlob,headBlodId,BLOBS);
-            writeContents(join(CWD, fileName), headBlob.getBytes());
-        } else {
-            join(CWD, fileName).delete();
-            writeContents(join(CWD, fileName), new byte[0]);
-        }
-        File conflictFile = join(CWD, "conflict1.txt");
-        if (branchBlobId != null) {
-            Blob branchBlob = readObject(join(BLOBS, branchBlobId), Blob.class);
-            saveToFile(branchBlob,branchBlobId,BLOBS);
-            writeContents(conflictFile, branchBlob.getBytes());
-        } else {
-            // If other branch’s file was deleted, just create an empty conflict file
-            if (conflictFile.exists()) {
-                conflictFile.delete();
-            }
-            writeContents(conflictFile, new byte[0]);
-        }
         String conflictContents = getConflictContents(headBlodId, branchBlobId);
         Blob conflictFileBlob = new Blob(conflictContents.getBytes(StandardCharsets.UTF_8), fileName);
         saveToFile(conflictFile, conflictFileBlob.getId(), BLOBS);
