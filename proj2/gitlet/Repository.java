@@ -865,7 +865,7 @@ public class Repository {
             , TreeMap<String, String> deleteFiles) {
         for (String writeFileName : writeFiles.keySet()) {
             String blobId = writeFiles.get(writeFileName);
-            Blob blob = readObject(join(BLOBS, blobId), Blob.class);
+            Blob blob = readObject(join(BLOBS, blobId), Blob.class);//FIXME:conflict后产生的blob未持久化，导致读取blob失败
             writeContents(join(CWD, writeFileName), blob.getBytes());
         }
         for (String deleteFileName : deleteFiles.keySet()) {
@@ -890,7 +890,7 @@ public class Repository {
         System.out.println("Encountered a merge conflict.");
         String conflictContents = getConflictContents(headBlodId, branchBlobId);
         Blob conflictFile = new Blob(conflictContents.getBytes(StandardCharsets.UTF_8), fileName);
-        saveToFile(conflictFile, fileName, BLOBS);
+        saveToFile(conflictFile,conflictFile.getId(), BLOBS);
         writeFiles.put(fileName, conflictFile.getId());
     }
 
