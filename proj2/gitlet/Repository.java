@@ -819,6 +819,10 @@ public class Repository {
         if ((headModified && branchModified) && headBlobId.equals(branchBlobId)) {
             writeFiles.put(fileName, headBlobId);
         }
+        // If the file is unchanged in HEAD but removed in the other branch, remove it.
+        if (!headModified && branchDeleted) {
+            deleteFiles.put(fileName, "delete");
+        }
         if (headDeleted && branchDeleted) {
             deleteFiles.put(fileName, "delete");
         }
