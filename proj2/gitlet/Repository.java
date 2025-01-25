@@ -101,7 +101,8 @@ public class Repository {
 
     public static void init() throws IOException {
         if (GITLET_DIR.exists()) {
-            System.out.println("A Gitlet version-control system already exists in the current directory.");
+            System.out.println("A Gitlet version-control system already " +
+                    "exists in the current directory.");
             System.exit(0);
         }
         createDirectoriesAndFiles();
@@ -191,7 +192,8 @@ public class Repository {
     /**
      * rm FILES
      * 1. files neither staged nor tracked by HEAD commit , print err
-     * 2. files tracked    staged for removal , delete from CWD , display section "Removed Files" in status command
+     * 2. files tracked    staged for removal , delete from CWD ,
+     *    display section "Removed Files" in status command
      * 3. files staged  remove it from addStage
      *
      * @param fileName
@@ -365,8 +367,10 @@ public class Repository {
      * Copy the file with the same name from the HEAD commit to the CWD, overwriting if it exists
      * Read the HEAD to get the current commit ID, then get the commit based on the ID
      * Get blobs from a commit, then find a file named fileName within those blobs
-     * If found, retrieve the blobId corresponding to the key, read the blob file with the same name as the blobs
-     * Read the blob object and write the blob's byte array to a file in the current working directory
+     * If found, retrieve the blobId corresponding to the key,
+     * read the blob file with the same name as the blobs
+     * Read the blob object and write the blob's byte array
+     * to a file in the current working directory
      * If not found, print: File does not exist in that commit.
      *
      * @param fileName The copied file name
@@ -382,7 +386,8 @@ public class Repository {
     }
 
     /**
-     * Copy the file with the same name as the commit in the commitId to the current working directory (CWD)
+     * Copy the file with the same name as the commit in the commitId
+     * to the current working directory (CWD)
      * overwriting if it already exists
      * 支持短字符
      *
@@ -417,11 +422,14 @@ public class Repository {
     /**
      * Check if a branch exists and if it's the same as the current branch
      * Get all file names (String) tracked by the checked branch
-     * Check if a file with the same name as the checked branch exists in the current working directory
-     * If present, print: There is an untracked file in the way; delete it, or add and commit it first. Exit
+     * Check if a file with the same name as the checked branch
+     * exists in the current working directory
+     * If present, print: There is an untracked file in the way; delete it,
+     * or add and commit it first. Exit
      * The checked-out branch's files are restored to the current working directory (CWD).
      * If a file already exists, it will be overwritten
-     * Get all file names (String) tracked by the current commit, filter for files tracked only by the current commit
+     * Get all file names (String) tracked by the current commit,
+     * filter for files tracked only by the current commit
      * and delete them from the CWD
      * Treat the given branch as the current HEAD branch
      * Clear the staging area
@@ -443,7 +451,8 @@ public class Repository {
         // 2. 先统一检查：目标commit中即将覆盖或删除的文件是否在当前工作区中且属于“未跟踪”状态
         //    若发现未跟踪文件会被覆盖或删除，则报错并提前返回
         if (hasUntrackedConflict(targetCommitId)) {
-            System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+            System.out.println("There is an untracked file in the way; " +
+                    "delete it, or add and commit it first.");
             return;
         }
         // delete the files unique to the original branch check out files that
@@ -501,41 +510,7 @@ public class Repository {
             join(CWD, fileName).delete();
         }
     }
-
-    private static void writeFiles(TreeMap<String, String> findOnlyGivenCommitTracked) {
-        if (findOnlyGivenCommitTracked.isEmpty()) {
-            return;
-        }
-        for (String fileName : findOnlyGivenCommitTracked.keySet()) {
-            File file = join(CWD, fileName);
-            if (file.exists()) {
-                System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
-                System.exit(0);
-            }
-            overwriteFiles(findOnlyGivenCommitTracked);
-        }
-    }
-
-    //如果当前分支中有未跟踪的工作文件，并且该文件将被重置覆盖，则打印
-    //There is an untracked file in the way; delete it, or add and commit it first.
-    private static void filesCheckBeforeCheckOut(String fileName, String commitId) {
-        boolean isUntracked = !isFileTrackedInCommit(fileName, getTheLatestCommit());
-        boolean willBeOverwritten = false;
-        //获取给定分支该文件的blobId，与当前分支的blobId对比
-        TreeMap<String, String> branchFiles = getCommitById(commitId).getBlobsID();
-        TreeMap<String, String> curFiles = getTheLatestCommit().getBlobsID();
-
-        String branchBlobId = branchFiles.get(fileName);
-        String curBlobId = curFiles.get(fileName);
-        if (!Objects.equals(branchBlobId, curBlobId)) {
-            willBeOverwritten = true;
-        }
-        if (isUntracked && willBeOverwritten) {
-            System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
-            System.exit(0);
-        }
-    }
-
+    //判断当前分支是否有未跟踪的文件，且该文件将被给定文件集所覆盖或删除
     private static boolean hasUntrackedConflict(TreeMap<String, String> targetFiles) {
         TreeMap<String, String> currentFiles = getTheLatestCommit().getBlobsID();
         // 收集在目标commit里出现，但内容和当前commit里不同，可能要覆盖的文件
@@ -568,7 +543,29 @@ public class Repository {
     }
 
     private static boolean hasUntrackedConflict(String targetCommitId) {
-        return hasUntrackedConflict(getCommitById(targetCommitId).getBlobsID());
+        TreeMap<String, String> targetFiles = getCommitById(targetCommitId).getBlobsID();
+        TreeMap<String, String> currentFiles = getTheLatestCommit().getBlobsID();
+        // 收集在目标commit里出现，但内容和当前commit里不同，可能要覆盖的文件
+        // 以及当前commit里有但目标commit里没有，可能要删除的文件
+        Set<String> filesToOverwriteOrRemove = new HashSet<>();
+        // 目标commit新增或改动的文件
+        for (String fileName : targetFiles.keySet()) {
+            String targetBlobId = targetFiles.get(fileName);
+            String currentBlobId = currentFiles.get(fileName);
+            // 如果文件在两边commit都存在且blobId不同 => 需要覆盖
+            // 如果文件在目标commit存在，但当前commit不存在 => 也可能覆盖当前工作目录
+            if (currentBlobId == null || !currentBlobId.equals(targetBlobId)) {
+                filesToOverwriteOrRemove.add(fileName);
+            }
+        }
+        // 逐个检测：如果工作目录下存在这些文件且它们在当前commit中未被跟踪 => 触发冲突
+        for (String fileName : filesToOverwriteOrRemove) {
+            File f = join(CWD, fileName);
+            if (f.exists() && !isFileTrackedInCommit(fileName, getTheLatestCommit())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -587,8 +584,10 @@ public class Repository {
     }
 
     /**
-     * Find the corresponding file in the branches folder based on the given branchName, and read the CommitId from it
-     * Get the commit by CommitId, and retrieve the blobs from the commit. Restore all files from the blobs to the CWD
+     * Find the corresponding file in the branches folder based on the given branchName,
+     * and read the CommitId from it
+     * Get the commit by CommitId, and retrieve the blobs from the commit.
+     * Restore all files from the blobs to the CWD
      * Change HEAD to the current CommitId, BRANCH to branchName
      *
      * @param args
@@ -642,7 +641,8 @@ public class Repository {
         // 2. 先统一检查：目标commit中即将覆盖或删除的文件是否在当前工作区中且属于“未跟踪”状态
         //    若发现未跟踪文件会被覆盖或删除，则报错并提前返回
         if (hasUntrackedConflict(commitId)) {
-            System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+            System.out.println("There is an untracked file in the way; " +
+                    "delete it, or add and commit it first.");
             return;
         }
         writeContents(HEAD, commitId);
@@ -671,9 +671,12 @@ public class Repository {
     }
 
     /**
-     * 对branch A & branch B分别进行BFS遍历，将所有遍历到的commitId以及对应深度(commitId -> depth)放入Map，遍历到init commit结束
-     * 获得Map A & Map B. 对MapA.keyset()进行遍历，若MapB也包含该key，记录MapA此时的key->value 为minKey以及minValue。
-     * 继续遍历，如果MapB包含该key，并且对应MapA的value < minValue，将minKey与minValue更新为该键值对
+     * 对branch A & branch B分别进行BFS遍历，将所有遍历到的commitId
+     * 以及对应深度(commitId -> depth)放入Map，遍历到init commit结束
+     * 获得Map A & Map B. 对MapA.keyset()进行遍历，若MapB也包含该key，
+     * 记录MapA此时的key->value 为minKey以及minValue。
+     * 继续遍历，如果MapB包含该key，并且对应MapA的value < minValue，
+     * 将minKey与minValue更新为该键值对
      * 遍历结束，minKey对应splitCommit的commitId，minValue对应splitCommit的depth
      *
      * @param branchName
@@ -692,7 +695,8 @@ public class Repository {
         int minValue = Integer.MAX_VALUE;
         for (String commitId : headCommitTree.keySet()) {
             if (givenBranchCommitTree.containsKey(commitId)) {
-                int sum = headCommitTree.get(commitId) + givenBranchCommitTree.get(commitId);
+                int sum = headCommitTree.get(commitId) +
+                        givenBranchCommitTree.get(commitId);
                 if (sum < minValue || (sum == minValue) && commitId.compareTo(minKey) > 0) {
                     minValue = sum;
                     minKey = commitId;
@@ -702,7 +706,8 @@ public class Repository {
         return minKey;
     }
 
-    private static void breadthFirstSearch(String commitId, HashMap<String, Integer> commitTree) {
+    private static void breadthFirstSearch(String commitId,
+                                           HashMap<String, Integer> commitTree) {
         Queue<String> queue = new LinkedList<>();
         Set<String> marked = new HashSet<>();
 
@@ -745,11 +750,15 @@ public class Repository {
     /**
      * 接收一个分支
      * 找出给定分支以及当前分支的split point
-     * 对sp,other以及head中的每个文件进行审查，根据三者之间的文件差异，对工作目录中的文件进行合并修改
-     * 创建合并提交，合并提交保存合并后工作目录的文件快照（包括解决冲突后），并设置两个父提交
-     * 对于合并提交，在commit id下添加一行：Merge: 4975af1 2c1ead1。数字依次由两个父提交ID的前七位组成
+     * 对sp,other以及head中的每个文件进行审查，根据三者之间的文件差异，
+     * 对工作目录中的文件进行合并修改
+     * 创建合并提交，合并提交保存合并后工作目录的文件快照（包括解决冲突后），
+     * 并设置两个父提交
+     * 对于合并提交，在commit id下添加一行：Merge: 4975af1 2c1ead1。
+     * 数字依次由两个父提交ID的前七位组成
      * !!!!!在任何合并操作前执行该检查：如果当前提交中未跟踪的文件将被merge覆写或删除，打印：
-     * There is an untracked file in the way; delete it, or add and commit it first.并退出
+     * There is an untracked file in the way;
+     * delete it, or add and commit it first.并退出
      *
      * @param branchName
      */
@@ -791,7 +800,8 @@ public class Repository {
             }
         }
         if (hasUntrackedConflict(mergeResultFiles)) {
-            System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+            System.out.println("There is an untracked file in the way; " +
+                    "delete it, or add and commit it first.");
             System.exit(0);
         }
         mergeFilesOperation(writeFiles, deleteFiles);
