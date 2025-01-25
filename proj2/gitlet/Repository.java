@@ -538,7 +538,7 @@ public class Repository {
         }
     }
 
-    private static boolean hasUntrackedConflict(TreeMap<String, String> targetFiles){
+    private static boolean hasUntrackedConflict(TreeMap<String, String> targetFiles) {
         TreeMap<String, String> currentFiles = getTheLatestCommit().getBlobsID();
         // 收集在目标commit里出现，但内容和当前commit里不同，可能要覆盖的文件
         // 以及当前commit里有但目标commit里没有，可能要删除的文件
@@ -568,6 +568,7 @@ public class Repository {
         }
         return false;
     }
+
     private static boolean hasUntrackedConflict(String targetCommitId) {
         return hasUntrackedConflict(getCommitById(targetCommitId).getBlobsID());
     }
@@ -759,11 +760,11 @@ public class Repository {
         mergeEasyCase(branchName);
         TreeMap<String, String> mergeResultFiles = getMergeResultFiles(branchName);
         Commit mergeCommit = createMergeCommit(branchName, mergeResultFiles);
-        writeObject(join(COMMITS,mergeCommit.getId()),mergeCommit);
+        writeObject(join(COMMITS, mergeCommit.getId()), mergeCommit);
         initializeStages();
     }
 
-    private static TreeMap<String,String> getMergeResultFiles(String branchName) throws IOException {
+    private static TreeMap<String, String> getMergeResultFiles(String branchName) throws IOException {
         TreeMap<String, String> splitFiles = getCommitById(findSplitPointId(branchName)).getBlobsID();
         TreeMap<String, String> branchFiles = getBranchCommit(branchName).getBlobsID();
         TreeMap<String, String> curFiles = getTheLatestCommit().getBlobsID();
@@ -776,26 +777,26 @@ public class Repository {
         for (String allFileName : allFileNames) {
             String splitBlobId = splitFiles.get(allFileName);
             if (splitBlobId != null) {
-                filesInSplit(allFileName,splitBlobId,curFiles.get(allFileName)
-                        ,branchFiles.get(allFileName),writeFiles,deleteFiles);
-            }else {
-                filesNotInSplit(allFileName,curFiles.get(allFileName)
-                        ,branchFiles.get(allFileName)
-                        ,writeFiles);
+                filesInSplit(allFileName, splitBlobId, curFiles.get(allFileName)
+                        , branchFiles.get(allFileName), writeFiles, deleteFiles);
+            } else {
+                filesNotInSplit(allFileName, curFiles.get(allFileName)
+                        , branchFiles.get(allFileName)
+                        , writeFiles);
             }
         }
-        TreeMap<String,String> mergeResultFiles = new TreeMap<>();
+        TreeMap<String, String> mergeResultFiles = new TreeMap<>();
         mergeResultFiles.putAll(writeFiles);
         for (String deleteFileName : deleteFiles.keySet()) {
-            if(mergeResultFiles.containsKey(deleteFileName)){
+            if (mergeResultFiles.containsKey(deleteFileName)) {
                 mergeResultFiles.remove(deleteFileName);
             }
         }
-        if(hasUntrackedConflict(mergeResultFiles)){
+        if (hasUntrackedConflict(mergeResultFiles)) {
             System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
             System.exit(0);
         }
-        mergeFilesOperation(writeFiles,deleteFiles);
+        mergeFilesOperation(writeFiles, deleteFiles);
         return mergeResultFiles;
     }
 
@@ -825,42 +826,47 @@ public class Repository {
             deleteFiles.put(fileName, "delete");
         }
         if (headModified && branchModified && !headBlobId.equals(branchBlobId)) {
-            conflictHandling(headBlobId, branchBlobId, fileName,writeFiles);
+            conflictHandling(headBlobId, branchBlobId, fileName, writeFiles);
         }
         if (headModified && branchDeleted) {
-            conflictHandling(headBlobId, null, fileName,writeFiles);
+            conflictHandling(headBlobId, null, fileName, writeFiles);
         }
         if (branchModified && headDeleted) {
-            conflictHandling(null, branchBlobId, fileName,writeFiles);
+            conflictHandling(null, branchBlobId, fileName, writeFiles);
         }
     }
+
     private static void filesNotInSplit(String fileName,
-                                     String headBlobId, String branchBlobId,
-                                     TreeMap<String, String> writeFiles) throws IOException {
+                                        String headBlobId, String branchBlobId,
+                                        TreeMap<String, String> writeFiles) throws IOException {
         boolean headDeleted = headBlobId == null;
         boolean branchDeleted = branchBlobId == null;
 
-        if(branchDeleted && !headDeleted){
-            writeFiles.put(fileName,headBlobId);
+        if (branchDeleted && !headDeleted) {
+            writeFiles.put(fileName, headBlobId);
         }
-        if(!branchDeleted && headDeleted){
-            writeFiles.put(fileName,branchBlobId);
+        if (!branchDeleted && headDeleted) {
+            writeFiles.put(fileName, branchBlobId);
         }
-        if(!headBlobId.equals(branchBlobId)){
-            conflictHandling(headBlobId,branchBlobId,fileName,writeFiles);
+        //双方文件内容不一致，conflict
+        if (!headDeleted && !branchDeleted) {
+            if (!headBlobId.equals(branchBlobId)) {   //branchBlobId is NULL
+                conflictHandling(headBlobId, branchBlobId, fileName, writeFiles);
+            }
         }
     }
+
     //将merge结果修改的文件写入CWD
     private static void mergeFilesOperation(TreeMap<String, String> writeFiles
-            ,TreeMap<String, String>  deleteFiles) {
+            , TreeMap<String, String> deleteFiles) {
         for (String writeFileName : writeFiles.keySet()) {
             String blobId = writeFiles.get(writeFileName);
             Blob blob = readObject(join(CWD, blobId), Blob.class);
-            writeContents(join(CWD,writeFileName), blob.getBytes());
+            writeContents(join(CWD, writeFileName), blob.getBytes());
         }
         for (String deleteFileName : deleteFiles.keySet()) {
-            if(join(CWD,deleteFileName).exists()){
-                join(CWD,deleteFileName).delete();
+            if (join(CWD, deleteFileName).exists()) {
+                join(CWD, deleteFileName).delete();
             }
         }
     }
@@ -875,13 +881,13 @@ public class Repository {
      * >>>>>>>
      * 将该内容重新写回文件
      */
-    private static void conflictHandling(String headBlodId, String branchBlobId, String fileName,TreeMap<String, String> writeFiles) throws IOException {
+    private static void conflictHandling(String headBlodId, String branchBlobId, String fileName, TreeMap<String, String> writeFiles) throws IOException {
         loadStage();
         System.out.println("Encountered a merge conflict.");
         String conflictContents = getConflictContents(headBlodId, branchBlobId);
         Blob conflictFile = new Blob(conflictContents.getBytes(StandardCharsets.UTF_8), fileName);
         saveToFile(conflictFile, fileName, BLOBS);
-        writeFiles.put(fileName,conflictFile.getId());
+        writeFiles.put(fileName, conflictFile.getId());
     }
 
     private static String getConflictContents(String headBlodId, String branchBlobId) {
@@ -913,7 +919,7 @@ public class Repository {
     }
 
     private static Commit createMergeCommit(String branchName,
-                                            TreeMap<String,String> mergeResultFiles) {
+                                            TreeMap<String, String> mergeResultFiles) {
         String msg = "Merged " + getCurrentBranchName() + " into " + branchName + ".";
         ArrayList<String> parentsId = new ArrayList<>();
         parentsId.add(getBranchCommitId(branchName));
