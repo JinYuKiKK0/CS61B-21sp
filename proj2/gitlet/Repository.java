@@ -549,7 +549,8 @@ public class Repository {
         // Collect files that might be overwritten or removed
         Set<String> filesToOverwriteOrRemove = new HashSet<>();
 
-        // Potentially overwritten files: appear in target commit, differ from current commit
+        // Potentially overwritten files: appear in target commit,
+        // differ from current commit
         for (String fileName : targetFiles.keySet()) {
             String targetBlobId = targetFiles.get(fileName);
             String currentBlobId = currentFiles.get(fileName);
@@ -564,8 +565,10 @@ public class Repository {
                 filesToOverwriteOrRemove.add(fileName);
             }
         }
-        // Only flag as a conflict if the file is untracked in the current commit, exists in the working directory,
-        // and is actually going to be overwritten or removed (i.e., it’s in filesToOverwriteOrRemove).
+        // Only flag as a conflict if the file is untracked
+        // in the current commit, exists in the working directory,
+        // and is actually going to be overwritten or removed
+        // (i.e., it’s in filesToOverwriteOrRemove).
         for (String fileName : filesToOverwriteOrRemove) {
             File f = join(CWD, fileName);
             if (f.exists() && !isFileTrackedInCommit(fileName, getTheLatestCommit())) {
